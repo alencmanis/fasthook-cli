@@ -17,6 +17,7 @@ export async function loadConfig(): Promise<FasthookConfig> {
     const record = parsed as Record<string, unknown>;
     return {
       apiKey: typeof record.apiKey === "string" ? record.apiKey : undefined,
+      destinationId: typeof record.destinationId === "string" ? record.destinationId : undefined,
       tunnelUrl: typeof record.tunnelUrl === "string" ? record.tunnelUrl : undefined,
       defaultLocalUrl: typeof record.defaultLocalUrl === "string" ? record.defaultLocalUrl : undefined
     };
@@ -30,6 +31,7 @@ export async function saveConfig(next: FasthookConfig): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
   const clean: FasthookConfig = {};
   if (next.apiKey) clean.apiKey = next.apiKey;
+  if (next.destinationId) clean.destinationId = next.destinationId;
   if (next.tunnelUrl) clean.tunnelUrl = next.tunnelUrl;
   if (next.defaultLocalUrl) clean.defaultLocalUrl = next.defaultLocalUrl;
   await writeFile(path, `${JSON.stringify(clean, null, 2)}\n`, "utf8");

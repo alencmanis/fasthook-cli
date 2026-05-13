@@ -8,8 +8,10 @@ function printHelp(): void {
   console.log(`fasthook CLI
 
 Usage:
-  fasthook login --api-key fhp_xxx [--tunnel-url https://tunnel.fasthook.io/connect]
+  fasthook login --api-key fhp_xxx [--destination des_xxx] [--tunnel-url https://tunnel.fasthook.io/connect]
+  fasthook config --destination des_xxx [--to http://localhost:3000]
   fasthook tunnel --destination des_xxx --to http://localhost:3000
+  fasthook tunnel
   fasthook config
   fasthook logout
 
@@ -38,6 +40,23 @@ function pickTunnelUrl(flags: Record<string, string | boolean>, config: Fasthook
   );
 }
 
+function updateStoredOptions(flags: Record<string, string | boolean>, config: FasthookConfig): FasthookConfig {
+  const destinationId = getStringFlag(flags, "destination");
+  const defaultLocalUrl = getStringFlag(flags, "to", "local-url");
+  const tunnelUrl = getStringFlag(flags, "tunnel-url");
+
+  return {
+    ...config,
+    ...(destinationId ? { destinationId } : {}),
+    ...(defaultLocalUrl ? { defaultLocalUrl } : {}),
+    ...(tunnelUrl ? { tunnelUrl } : {})
+  };
+}
+
+function hasStoredOptionFlags(flags: Record<string, string | boolean>): boolean {
+  return Boolean(getStringFlag(flags, "destination", "to", "local-url", "tunnel-url"));
+}
+
 async function main(): Promise<void> {
   const parsed = parseCliArgs(process.argv.slice(2));
   if (!parsed.command || getBooleanFlag(parsed.flags, "help")) {
@@ -51,7 +70,7 @@ async function main(): Promise<void> {
   if (command === "login") {
     const apiKey = getStringFlag(parsed.flags, "api-key") ?? parsed.positionals[0]?.trim() ?? null;
     const nextConfig: FasthookConfig = {
-      ...config,
+      ...updateStoredOptions(parsed.flags, config),
       apiKey: requireValue(apiKey, "API key is required. Use: fasthook login --api-key fhp_xxx"),
       tunnelUrl: pickTunnelUrl(parsed.flags, config)
     };
@@ -67,8 +86,15 @@ async function main(): Promise<void> {
   }
 
   if (command === "config") {
+    if (hasStoredOptionFlags(parsed.flags)) {
+      await saveConfig(updateStoredOptions(parsed.flags, config));
+      console.log(`Updated ${getConfigPath()}`);
+      return;
+    }
+
     console.log(`Config: ${getConfigPath()}`);
     console.log(`API key: ${maskSecret(config.apiKey)}`);
+    console.log(`Destination: ${config.destinationId ?? "(not set)"}`);
     console.log(`Tunnel URL: ${config.tunnelUrl ?? DEFAULT_TUNNEL_URL}`);
     if (config.defaultLocalUrl) console.log(`Default local URL: ${config.defaultLocalUrl}`);
     return;
@@ -78,7 +104,11 @@ async function main(): Promise<void> {
     const apiKey =
       getStringFlag(parsed.flags, "api-key") ?? process.env.FASTHOOK_API_KEY?.trim() ?? config.apiKey ?? null;
     const destinationId =
-      getStringFlag(parsed.flags, "destination") ?? process.env.FASTHOOK_DESTINATION_ID?.trim() ?? parsed.positionals[0]?.trim() ?? null;
+      getStringFlag(parsed.flags, "destination") ??
+      process.env.FASTHOOK_DESTINATION_ID?.trim() ??
+      parsed.positionals[0]?.trim() ??
+      config.destinationId ??
+      null;
     const localUrl =
       getStringFlag(parsed.flags, "to", "local-url") ??
       process.env.FASTHOOK_LOCAL_URL?.trim() ??

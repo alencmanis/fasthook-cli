@@ -1,1 +1,1 @@
-node dist/index.js tunnel --destination des_1649a1a8d6f348 --to http://localhost:3000
+start node dist/index.js tunnel

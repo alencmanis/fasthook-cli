@@ -28,6 +28,12 @@ With `npm link`:
 fasthook login --api-key fhp_xxx
 ```
 
+You can store the default CLI destination and local URL in the same config file:
+
+```bash
+fasthook config --destination des_xxx --to http://localhost:3000
+```
+
 This stores credentials in `~/.fasthook/config.json`.
 
 ## Start a tunnel
@@ -40,6 +46,12 @@ With `npm link`:
 
 ```bash
 fasthook tunnel --destination des_xxx --to http://localhost:3000
+```
+
+If `destination` and `to` are saved in config, this is enough:
+
+```bash
+fasthook tunnel
 ```
 
 The tunnel prints connection state, immediate failed delivery lines, and periodic aggregate stats. For every delivery, add `--verbose`; for only connection-level logs, add `--quiet`.
