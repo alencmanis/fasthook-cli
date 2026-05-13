@@ -8,6 +8,7 @@ const FLAG_ALIASES: Record<string, string> = {
   d: "destination",
   t: "to",
   h: "help",
+  q: "quiet",
   v: "verbose"
 };
 

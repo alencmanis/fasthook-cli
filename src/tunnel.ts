@@ -4,6 +4,15 @@ import type { DeliveryMessage, DeliveryResult, TunnelOptions } from "./types.js"
 
 const RECONNECT_MIN_MS = 500;
 const RECONNECT_MAX_MS = 10_000;
+const STATS_INTERVAL_MS = 5_000;
+
+type TunnelStats = {
+  received: number;
+  delivered: number;
+  failed: number;
+  inFlight: number;
+  lastPrintedTotal: number;
+};
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -31,6 +40,27 @@ function isDeliveryMessage(message: Record<string, unknown>): message is Deliver
 
 function safeStatus(value: number): number {
   return Number.isInteger(value) && value >= 100 && value <= 599 ? value : 502;
+}
+
+function truncate(value: string | undefined, maxLength = 180): string {
+  if (!value) return "";
+  return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
+}
+
+function deliveryLabel(message: DeliveryMessage, fallbackLocalUrl: string | null): string {
+  const request = message.request;
+  const method = request.method?.trim().toUpperCase() || "POST";
+  const target = request.localUrl?.trim() || fallbackLocalUrl?.trim() || "(missing local url)";
+  const ref = request.requestId || request.eventId || request.connectionId || message.jobId;
+  return `${method} ${target} ref=${ref}`;
+}
+
+function printStats(stats: TunnelStats, force = false): void {
+  const total = stats.delivered + stats.failed;
+  if (total === 0 && stats.inFlight === 0) return;
+  if (!force && total === stats.lastPrintedTotal) return;
+  stats.lastPrintedTotal = total;
+  console.log(`Stats: received=${stats.received} delivered=${stats.delivered} failed=${stats.failed} in_flight=${stats.inFlight}`);
 }
 
 function sendDeliveryResult(socket: WebSocket, jobId: string, result: DeliveryResult): void {
@@ -72,6 +102,14 @@ async function connectOnce(options: TunnelOptions, signal: AbortSignal): Promise
   let opened = false;
   let settled = false;
   let heartbeat: NodeJS.Timeout | null = null;
+  let statsTimer: NodeJS.Timeout | null = null;
+  const stats: TunnelStats = {
+    received: 0,
+    delivered: 0,
+    failed: 0,
+    inFlight: 0,
+    lastPrintedTotal: 0
+  };
   const closeForAbort = () => {
     if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
       socket.close(1000, "client_stop");
@@ -83,6 +121,8 @@ async function connectOnce(options: TunnelOptions, signal: AbortSignal): Promise
       if (settled) return;
       settled = true;
       if (heartbeat) clearInterval(heartbeat);
+      if (statsTimer) clearInterval(statsTimer);
+      if (!options.quiet) printStats(stats, true);
       signal.removeEventListener("abort", closeForAbort);
       resolve();
     };
@@ -90,6 +130,7 @@ async function connectOnce(options: TunnelOptions, signal: AbortSignal): Promise
       if (settled) return;
       settled = true;
       if (heartbeat) clearInterval(heartbeat);
+      if (statsTimer) clearInterval(statsTimer);
       signal.removeEventListener("abort", closeForAbort);
       reject(error);
     };
@@ -103,6 +144,9 @@ async function connectOnce(options: TunnelOptions, signal: AbortSignal): Promise
       heartbeat = setInterval(() => {
         if (socket.readyState === WebSocket.OPEN) socket.ping();
       }, 30_000);
+      if (!options.quiet) {
+        statsTimer = setInterval(() => printStats(stats), STATS_INTERVAL_MS);
+      }
     });
 
     socket.on("message", (data) => {
@@ -110,19 +154,35 @@ async function connectOnce(options: TunnelOptions, signal: AbortSignal): Promise
       if (!message) return;
 
       if (message.type === "hello") {
-        if (options.verbose) console.log("Tunnel handshake received");
+        if (options.verbose && !options.quiet) console.log("Tunnel handshake received");
         return;
       }
 
       if (!isDeliveryMessage(message)) return;
       void (async () => {
+        stats.received += 1;
+        stats.inFlight += 1;
         const request = message.request;
-        if (options.verbose) {
+        const startedAt = Date.now();
+        if (options.verbose && !options.quiet) {
           console.log(`Delivery ${message.jobId}: ${request.method ?? "POST"} ${request.localUrl ?? options.localUrl ?? "(missing)"}`);
         }
         const result = await forwardDeliveryToLocalhost(request, options.localUrl);
-        if (options.verbose) {
-          console.log(`Delivery ${message.jobId}: ${result.status} ${result.statusText}`);
+        const durationMs = Date.now() - startedAt;
+        if (safeStatus(result.status) >= 400) {
+          stats.failed += 1;
+          if (!options.quiet) {
+            const detail = truncate(result.body);
+            console.error(
+              `Failed: ${deliveryLabel(message, options.localUrl)} -> ${result.status} ${result.statusText} ${durationMs}ms${detail ? `: ${detail}` : ""}`
+            );
+          }
+        } else {
+          stats.delivered += 1;
+        }
+        stats.inFlight = Math.max(0, stats.inFlight - 1);
+        if (options.verbose && !options.quiet) {
+          console.log(`Delivery ${message.jobId}: ${result.status} ${result.statusText} ${durationMs}ms`);
         }
         sendDeliveryResult(socket, message.jobId, result);
       })();

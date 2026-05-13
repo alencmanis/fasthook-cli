@@ -38,4 +38,5 @@ export type TunnelOptions = {
   localUrl: string | null;
   tunnelUrl: string;
   verbose: boolean;
+  quiet: boolean;
 };

@@ -42,6 +42,8 @@ With `npm link`:
 fasthook tunnel --destination des_xxx --to http://localhost:3000
 ```
 
+The tunnel prints connection state, immediate failed delivery lines, and periodic aggregate stats. For every delivery, add `--verbose`; for only connection-level logs, add `--quiet`.
+
 During development, if the tunnel worker is not yet routed to `https://tunnel.fasthook.io/connect`, pass it explicitly:
 
 ```bash

@@ -18,6 +18,7 @@ Options:
   -t, --to            Local target URL, for example http://localhost:3000
       --api-key       Project API key. Can also use FASTHOOK_API_KEY.
       --tunnel-url    Tunnel worker connect URL. Can also use FASTHOOK_TUNNEL_URL.
+  -q, --quiet         Print only connect/disconnect and fatal errors.
   -v, --verbose       Print per-delivery logs.
   -h, --help          Show help.
 `);
@@ -94,7 +95,8 @@ async function main(): Promise<void> {
       destinationId: requireValue(destinationId, "Destination id is required. Use --destination des_xxx."),
       localUrl,
       tunnelUrl: pickTunnelUrl(parsed.flags, config),
-      verbose: getBooleanFlag(parsed.flags, "verbose")
+      verbose: getBooleanFlag(parsed.flags, "verbose"),
+      quiet: getBooleanFlag(parsed.flags, "quiet")
     });
     return;
   }
