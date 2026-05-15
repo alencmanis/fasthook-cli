@@ -1,6 +1,8 @@
 # fasthook-cli
 
-Local tunnel CLI for Fasthook CLI destinations.
+Local tunnel CLI for FastHook CLI destinations on [www.fasthook.io](https://www.fasthook.io).
+
+Use this repository with your FastHook project API key and a CLI destination created in the FastHook dashboard.
 
 ## Run locally
 
