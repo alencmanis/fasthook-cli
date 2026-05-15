@@ -1,7 +1,6 @@
 export type FasthookConfig = {
   apiKey?: string;
   destinationId?: string;
-  tunnelUrl?: string;
 };
 
 export type DeliveryRequest = {

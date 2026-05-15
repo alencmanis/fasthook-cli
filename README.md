@@ -48,19 +48,12 @@ The local target is runtime-only. Fasthook stores the CLI destination path in th
 
 The tunnel prints connection state, immediate failed delivery lines, and periodic aggregate stats. For every delivery, add `--verbose`; for only connection-level logs, add `--quiet`.
 
-During development, if the tunnel worker is not yet routed to `https://tunnel.fasthook.io/connect`, pass it explicitly:
-
-```bash
-npx . tunnel --destination des_xxx --to http://localhost:8080 --tunnel-url https://your-tunnel-worker.workers.dev/connect
-```
-
 Environment variables are also supported:
 
 ```bash
 FASTHOOK_API_KEY=fhp_xxx
 FASTHOOK_DESTINATION_ID=des_xxx
 FASTHOOK_LOCAL_URL=http://localhost:8080
-FASTHOOK_TUNNEL_URL=https://tunnel.fasthook.io/connect
 ```
 
 ## Commands

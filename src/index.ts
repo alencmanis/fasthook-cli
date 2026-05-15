@@ -11,7 +11,7 @@ function printHelp(): void {
   console.log(`fasthook CLI
 
 Usage:
-  fasthook login --api-key fhp_xxx [--destination des_xxx] [--tunnel-url https://tunnel.fasthook.io/connect]
+  fasthook login --api-key fhp_xxx [--destination des_xxx]
   fasthook config --destination des_xxx
   fasthook tunnel
   fasthook tunnel 8080
@@ -23,7 +23,6 @@ Options:
   -d, --destination   CLI destination id, for example des_xxx
   -t, --to            Local target port or URL, for example 8080 or http://localhost:8080. Defaults to 8080.
       --api-key       Project API key. Can also use FASTHOOK_API_KEY.
-      --tunnel-url    Tunnel worker connect URL. Can also use FASTHOOK_TUNNEL_URL.
   -q, --quiet         Print only connect/disconnect and fatal errors.
   -v, --verbose       Print per-delivery logs.
   -h, --help          Show help.
@@ -35,28 +34,17 @@ function requireValue(value: string | null, message: string): string {
   return value;
 }
 
-function pickTunnelUrl(flags: Record<string, string | boolean>, config: FasthookConfig): string {
-  return (
-    getStringFlag(flags, "tunnel-url") ??
-    process.env.FASTHOOK_TUNNEL_URL?.trim() ??
-    config.tunnelUrl ??
-    DEFAULT_TUNNEL_URL
-  );
-}
-
 function updateStoredOptions(flags: Record<string, string | boolean>, config: FasthookConfig): FasthookConfig {
   const destinationId = getStringFlag(flags, "destination");
-  const tunnelUrl = getStringFlag(flags, "tunnel-url");
 
   return {
     ...(config.apiKey ? { apiKey: config.apiKey } : {}),
-    ...(destinationId || config.destinationId ? { destinationId: destinationId ?? config.destinationId } : {}),
-    ...(tunnelUrl || config.tunnelUrl ? { tunnelUrl: tunnelUrl ?? config.tunnelUrl } : {})
+    ...(destinationId || config.destinationId ? { destinationId: destinationId ?? config.destinationId } : {})
   };
 }
 
 function hasStoredOptionFlags(flags: Record<string, string | boolean>): boolean {
-  return Boolean(getStringFlag(flags, "destination", "tunnel-url"));
+  return Boolean(getStringFlag(flags, "destination"));
 }
 
 function looksLikeLocalTarget(value: string | undefined): boolean {
@@ -79,8 +67,7 @@ async function main(): Promise<void> {
     const apiKey = getStringFlag(parsed.flags, "api-key") ?? parsed.positionals[0]?.trim() ?? null;
     const nextConfig: FasthookConfig = {
       ...updateStoredOptions(parsed.flags, config),
-      apiKey: requireValue(apiKey, "API key is required. Use: fasthook login --api-key fhp_xxx"),
-      tunnelUrl: pickTunnelUrl(parsed.flags, config)
+      apiKey: requireValue(apiKey, "API key is required. Use: fasthook login --api-key fhp_xxx")
     };
     await saveConfig(nextConfig);
     console.log(`Saved credentials to ${getConfigPath()}`);
@@ -107,7 +94,6 @@ async function main(): Promise<void> {
     console.log(`API key: ${maskSecret(config.apiKey)}`);
     console.log(`Destination: ${config.destinationId ?? "(not set)"}`);
     console.log(`Default local target: ${normalizeLocalTarget(DEFAULT_LOCAL_TARGET)} (runtime-only)`);
-    console.log(`Tunnel URL: ${config.tunnelUrl ?? DEFAULT_TUNNEL_URL}`);
     return;
   }
 
@@ -134,7 +120,7 @@ async function main(): Promise<void> {
       apiKey: requireValue(apiKey, "API key is required. Run fasthook login --api-key fhp_xxx or pass --api-key."),
       destinationId: requireValue(destinationId, "Destination id is required. Use --destination des_xxx."),
       localUrl: normalizeLocalTarget(localUrl),
-      tunnelUrl: pickTunnelUrl(parsed.flags, config),
+      tunnelUrl: DEFAULT_TUNNEL_URL,
       verbose: getBooleanFlag(parsed.flags, "verbose"),
       quiet: getBooleanFlag(parsed.flags, "quiet")
     });
