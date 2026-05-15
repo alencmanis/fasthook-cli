@@ -50,11 +50,34 @@ function normalizeMethod(method: string | undefined): string {
   return value || "POST";
 }
 
+export function normalizeLocalTarget(value: string): string {
+  const trimmed = value.trim();
+  if (/^\d+$/.test(trimmed)) return `http://localhost:${trimmed}`;
+  if (/^(localhost|127\.0\.0\.1|\[?::1\]?)(?::\d+)?(?:\/|$)/i.test(trimmed)) return `http://${trimmed}`;
+  return trimmed;
+}
+
+export function buildLocalTargetUrl(baseUrl: string, deliveryPath?: string | null): string {
+  const normalizedBase = normalizeLocalTarget(baseUrl);
+  const path = deliveryPath?.trim() ?? "";
+  if (!path || path === "/") return normalizedBase;
+  try {
+    const url = new URL(normalizedBase);
+    const basePath = url.pathname.replace(/\/+$/, "");
+    const extraPath = path.startsWith("/") ? path : `/${path}`;
+    url.pathname = `${basePath}${extraPath}` || "/";
+    return url.toString();
+  } catch {
+    return normalizedBase;
+  }
+}
+
 export async function forwardDeliveryToLocalhost(
   request: DeliveryRequest,
   fallbackLocalUrl: string | null
 ): Promise<DeliveryResult> {
-  const targetUrl = request.localUrl?.trim() || fallbackLocalUrl?.trim() || "";
+  const baseUrl = fallbackLocalUrl?.trim() || request.localUrl?.trim() || "";
+  const targetUrl = baseUrl ? buildLocalTargetUrl(baseUrl, request.path) : "";
   if (!targetUrl) {
     return { status: 502, statusText: "Local URL Missing", body: "local_url_missing" };
   }

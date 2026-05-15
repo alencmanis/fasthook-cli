@@ -2,13 +2,13 @@ export type FasthookConfig = {
   apiKey?: string;
   destinationId?: string;
   tunnelUrl?: string;
-  defaultLocalUrl?: string;
 };
 
 export type DeliveryRequest = {
   teamId?: string | null;
   destinationId?: string | null;
   localUrl?: string | null;
+  path?: string | null;
   method?: string;
   headers?: Record<string, string>;
   body?: string;

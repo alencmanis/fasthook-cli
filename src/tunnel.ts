@@ -1,5 +1,5 @@
 import WebSocket from "ws";
-import { forwardDeliveryToLocalhost } from "./http.js";
+import { buildLocalTargetUrl, forwardDeliveryToLocalhost } from "./http.js";
 import type { DeliveryMessage, DeliveryResult, TunnelOptions } from "./types.js";
 
 const RECONNECT_MIN_MS = 500;
@@ -50,7 +50,8 @@ function truncate(value: string | undefined, maxLength = 180): string {
 function deliveryLabel(message: DeliveryMessage, fallbackLocalUrl: string | null): string {
   const request = message.request;
   const method = request.method?.trim().toUpperCase() || "POST";
-  const target = request.localUrl?.trim() || fallbackLocalUrl?.trim() || "(missing local url)";
+  const baseUrl = fallbackLocalUrl?.trim() || request.localUrl?.trim() || "";
+  const target = baseUrl ? buildLocalTargetUrl(baseUrl, request.path) : "(missing local url)";
   const ref = request.requestId || request.eventId || request.connectionId || message.jobId;
   return `${method} ${target} ref=${ref}`;
 }
@@ -165,7 +166,9 @@ async function connectOnce(options: TunnelOptions, signal: AbortSignal): Promise
         const request = message.request;
         const startedAt = Date.now();
         if (options.verbose && !options.quiet) {
-          console.log(`Delivery ${message.jobId}: ${request.method ?? "POST"} ${request.localUrl ?? options.localUrl ?? "(missing)"}`);
+          const baseUrl = options.localUrl ?? request.localUrl ?? "";
+          const target = baseUrl ? buildLocalTargetUrl(baseUrl, request.path) : "(missing)";
+          console.log(`Delivery ${message.jobId}: ${request.method ?? "POST"} ${target}`);
         }
         const result = await forwardDeliveryToLocalhost(request, options.localUrl);
         const durationMs = Date.now() - startedAt;

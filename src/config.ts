@@ -18,8 +18,7 @@ export async function loadConfig(): Promise<FasthookConfig> {
     return {
       apiKey: typeof record.apiKey === "string" ? record.apiKey : undefined,
       destinationId: typeof record.destinationId === "string" ? record.destinationId : undefined,
-      tunnelUrl: typeof record.tunnelUrl === "string" ? record.tunnelUrl : undefined,
-      defaultLocalUrl: typeof record.defaultLocalUrl === "string" ? record.defaultLocalUrl : undefined
+      tunnelUrl: typeof record.tunnelUrl === "string" ? record.tunnelUrl : undefined
     };
   } catch {
     return {};
@@ -33,7 +32,6 @@ export async function saveConfig(next: FasthookConfig): Promise<void> {
   if (next.apiKey) clean.apiKey = next.apiKey;
   if (next.destinationId) clean.destinationId = next.destinationId;
   if (next.tunnelUrl) clean.tunnelUrl = next.tunnelUrl;
-  if (next.defaultLocalUrl) clean.defaultLocalUrl = next.defaultLocalUrl;
   await writeFile(path, `${JSON.stringify(clean, null, 2)}\n`, "utf8");
   try {
     await chmod(path, 0o600);

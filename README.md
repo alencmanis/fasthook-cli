@@ -2,36 +2,26 @@
 
 Local tunnel CLI for Fasthook CLI destinations.
 
-## Install
+## Run locally
 
 ```bash
 npm install
 npm run build
+npx . --help
 ```
 
-For local development you can expose the `fasthook` command:
-
-```bash
-npm link
-fasthook --help
-```
+This package exposes a `fasthook` bin, so `npx .` runs the local CLI from this repo.
 
 ## Login
 
 ```bash
-node dist/index.js login --api-key fhp_xxx
+npx . login --api-key fhp_xxx
 ```
 
-With `npm link`:
+You can store the default CLI destination in the same config file:
 
 ```bash
-fasthook login --api-key fhp_xxx
-```
-
-You can store the default CLI destination and local URL in the same config file:
-
-```bash
-fasthook config --destination des_xxx --to http://localhost:3000
+npx . config --destination des_xxx
 ```
 
 This stores credentials in `~/.fasthook/config.json`.
@@ -39,30 +29,29 @@ This stores credentials in `~/.fasthook/config.json`.
 ## Start a tunnel
 
 ```bash
-node dist/index.js tunnel --destination des_xxx --to http://localhost:3000
+npx . tunnel --destination des_xxx --to 8080
 ```
 
-With `npm link`:
+If `destination` is saved in config, run the tunnel without arguments. It defaults to `http://localhost:8080`, matching `fasthook-log`:
 
 ```bash
-fasthook tunnel --destination des_xxx --to http://localhost:3000
+npx . tunnel
 ```
 
-If `destination` and `to` are saved in config, this is enough:
+You can also pass the default target explicitly:
 
 ```bash
-fasthook tunnel
+npx . tunnel 8080
 ```
+
+The local target is runtime-only. Fasthook stores the CLI destination path in the cloud destination config and appends it to this target. For example, a destination path of `/webhooks/orders` with the default tunnel forwards to `http://localhost:8080/webhooks/orders`.
 
 The tunnel prints connection state, immediate failed delivery lines, and periodic aggregate stats. For every delivery, add `--verbose`; for only connection-level logs, add `--quiet`.
 
 During development, if the tunnel worker is not yet routed to `https://tunnel.fasthook.io/connect`, pass it explicitly:
 
 ```bash
-node dist/index.js tunnel \
-  --destination des_xxx \
-  --to http://localhost:3000 \
-  --tunnel-url https://your-tunnel-worker.workers.dev/connect
+npx . tunnel --destination des_xxx --to http://localhost:8080 --tunnel-url https://your-tunnel-worker.workers.dev/connect
 ```
 
 Environment variables are also supported:
@@ -70,14 +59,14 @@ Environment variables are also supported:
 ```bash
 FASTHOOK_API_KEY=fhp_xxx
 FASTHOOK_DESTINATION_ID=des_xxx
-FASTHOOK_LOCAL_URL=http://localhost:3000
+FASTHOOK_LOCAL_URL=http://localhost:8080
 FASTHOOK_TUNNEL_URL=https://tunnel.fasthook.io/connect
 ```
 
 ## Commands
 
 ```bash
-node dist/index.js config
-node dist/index.js logout
-node dist/index.js --help
+npx . config
+npx . logout
+npx . --help
 ```

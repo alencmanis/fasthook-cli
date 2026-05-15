@@ -1,23 +1,27 @@
 #!/usr/bin/env node
 import { parseCliArgs, getBooleanFlag, getStringFlag } from "./args.js";
 import { DEFAULT_TUNNEL_URL, deleteConfig, getConfigPath, loadConfig, maskSecret, saveConfig } from "./config.js";
+import { normalizeLocalTarget } from "./http.js";
 import { runTunnel } from "./tunnel.js";
 import type { FasthookConfig } from "./types.js";
+
+const DEFAULT_LOCAL_TARGET = "8080";
 
 function printHelp(): void {
   console.log(`fasthook CLI
 
 Usage:
   fasthook login --api-key fhp_xxx [--destination des_xxx] [--tunnel-url https://tunnel.fasthook.io/connect]
-  fasthook config --destination des_xxx [--to http://localhost:3000]
-  fasthook tunnel --destination des_xxx --to http://localhost:3000
+  fasthook config --destination des_xxx
   fasthook tunnel
+  fasthook tunnel 8080
+  fasthook tunnel --destination des_xxx --to http://localhost:8080
   fasthook config
   fasthook logout
 
 Options:
   -d, --destination   CLI destination id, for example des_xxx
-  -t, --to            Local target URL, for example http://localhost:3000
+  -t, --to            Local target port or URL, for example 8080 or http://localhost:8080. Defaults to 8080.
       --api-key       Project API key. Can also use FASTHOOK_API_KEY.
       --tunnel-url    Tunnel worker connect URL. Can also use FASTHOOK_TUNNEL_URL.
   -q, --quiet         Print only connect/disconnect and fatal errors.
@@ -42,19 +46,23 @@ function pickTunnelUrl(flags: Record<string, string | boolean>, config: Fasthook
 
 function updateStoredOptions(flags: Record<string, string | boolean>, config: FasthookConfig): FasthookConfig {
   const destinationId = getStringFlag(flags, "destination");
-  const defaultLocalUrl = getStringFlag(flags, "to", "local-url");
   const tunnelUrl = getStringFlag(flags, "tunnel-url");
 
   return {
-    ...config,
-    ...(destinationId ? { destinationId } : {}),
-    ...(defaultLocalUrl ? { defaultLocalUrl } : {}),
-    ...(tunnelUrl ? { tunnelUrl } : {})
+    ...(config.apiKey ? { apiKey: config.apiKey } : {}),
+    ...(destinationId || config.destinationId ? { destinationId: destinationId ?? config.destinationId } : {}),
+    ...(tunnelUrl || config.tunnelUrl ? { tunnelUrl: tunnelUrl ?? config.tunnelUrl } : {})
   };
 }
 
 function hasStoredOptionFlags(flags: Record<string, string | boolean>): boolean {
-  return Boolean(getStringFlag(flags, "destination", "to", "local-url", "tunnel-url"));
+  return Boolean(getStringFlag(flags, "destination", "tunnel-url"));
+}
+
+function looksLikeLocalTarget(value: string | undefined): boolean {
+  if (!value) return false;
+  const trimmed = value.trim();
+  return /^\d+$/.test(trimmed) || /^https?:\/\//i.test(trimmed) || /^(localhost|127\.0\.0\.1|\[?::1\]?)(?::\d+)?(?:\/|$)/i.test(trimmed);
 }
 
 async function main(): Promise<void> {
@@ -86,6 +94,9 @@ async function main(): Promise<void> {
   }
 
   if (command === "config") {
+    if (getStringFlag(parsed.flags, "to", "local-url")) {
+      throw new Error("Local target is runtime-only. Use: fasthook tunnel or fasthook tunnel --to http://localhost:8080");
+    }
     if (hasStoredOptionFlags(parsed.flags)) {
       await saveConfig(updateStoredOptions(parsed.flags, config));
       console.log(`Updated ${getConfigPath()}`);
@@ -95,35 +106,34 @@ async function main(): Promise<void> {
     console.log(`Config: ${getConfigPath()}`);
     console.log(`API key: ${maskSecret(config.apiKey)}`);
     console.log(`Destination: ${config.destinationId ?? "(not set)"}`);
+    console.log(`Default local target: ${normalizeLocalTarget(DEFAULT_LOCAL_TARGET)} (runtime-only)`);
     console.log(`Tunnel URL: ${config.tunnelUrl ?? DEFAULT_TUNNEL_URL}`);
-    if (config.defaultLocalUrl) console.log(`Default local URL: ${config.defaultLocalUrl}`);
     return;
   }
 
   if (command === "tunnel") {
+    const firstPositional = parsed.positionals[0]?.trim();
+    const secondPositional = parsed.positionals[1]?.trim();
+    const positionalLocalUrl = looksLikeLocalTarget(firstPositional) ? firstPositional : secondPositional;
+    const positionalDestinationId = looksLikeLocalTarget(firstPositional) ? null : firstPositional;
     const apiKey =
       getStringFlag(parsed.flags, "api-key") ?? process.env.FASTHOOK_API_KEY?.trim() ?? config.apiKey ?? null;
     const destinationId =
       getStringFlag(parsed.flags, "destination") ??
       process.env.FASTHOOK_DESTINATION_ID?.trim() ??
-      parsed.positionals[0]?.trim() ??
+      positionalDestinationId ??
       config.destinationId ??
       null;
     const localUrl =
       getStringFlag(parsed.flags, "to", "local-url") ??
       process.env.FASTHOOK_LOCAL_URL?.trim() ??
-      parsed.positionals[1]?.trim() ??
-      config.defaultLocalUrl ??
-      null;
-
-    if (!localUrl) {
-      console.warn("No local URL passed. Deliveries will use destination config.local_url if it is set.");
-    }
+      positionalLocalUrl ??
+      DEFAULT_LOCAL_TARGET;
 
     await runTunnel({
       apiKey: requireValue(apiKey, "API key is required. Run fasthook login --api-key fhp_xxx or pass --api-key."),
       destinationId: requireValue(destinationId, "Destination id is required. Use --destination des_xxx."),
-      localUrl,
+      localUrl: normalizeLocalTarget(localUrl),
       tunnelUrl: pickTunnelUrl(parsed.flags, config),
       verbose: getBooleanFlag(parsed.flags, "verbose"),
       quiet: getBooleanFlag(parsed.flags, "quiet")
