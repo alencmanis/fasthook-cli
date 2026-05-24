@@ -15,8 +15,6 @@ export type DeliveryRequest = {
   eventId?: string | null;
   connectionId?: string | null;
   eventDataId?: string | null;
-  sourcePayloadR2Key?: string | null;
-  processedR2Key?: string | null;
 };
 
 export type DeliveryMessage = {
