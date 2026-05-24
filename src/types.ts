@@ -1,6 +1,7 @@
 export type FasthookConfig = {
   apiKey?: string;
   destinationId?: string;
+  teamId?: string;
 };
 
 export type DeliveryRequest = {

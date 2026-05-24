@@ -17,7 +17,8 @@ export async function loadConfig(): Promise<FasthookConfig> {
     const record = parsed as Record<string, unknown>;
     return {
       apiKey: typeof record.apiKey === "string" ? record.apiKey : undefined,
-      destinationId: typeof record.destinationId === "string" ? record.destinationId : undefined
+      destinationId: typeof record.destinationId === "string" ? record.destinationId : undefined,
+      teamId: typeof record.teamId === "string" ? record.teamId : undefined
     };
   } catch {
     return {};
@@ -30,6 +31,7 @@ export async function saveConfig(next: FasthookConfig): Promise<void> {
   const clean: FasthookConfig = {};
   if (next.apiKey) clean.apiKey = next.apiKey;
   if (next.destinationId) clean.destinationId = next.destinationId;
+  if (next.teamId) clean.teamId = next.teamId;
   await writeFile(path, `${JSON.stringify(clean, null, 2)}\n`, "utf8");
   try {
     await chmod(path, 0o600);
