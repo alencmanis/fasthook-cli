@@ -124,7 +124,7 @@ const RESOURCE_COMMANDS = {
     get: { method: "GET", path: "/destinations/:id", requireId: true },
     create: { method: "POST", path: "/destinations" },
     upsert: { method: "PUT", path: "/destinations" },
-    update: { method: "PUT", path: "/destinations/:id", requireId: true },
+    update: { method: "PATCH", path: "/destinations/:id", requireId: true },
     delete: { method: "DELETE", path: "/destinations/:id", requireId: true },
     disable: { method: "POST", path: "/destinations/:id/disable", requireId: true },
     enable: { method: "POST", path: "/destinations/:id/enable", requireId: true }
