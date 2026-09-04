@@ -1,0 +1,1253 @@
+{
+  "openapi": "3.1.0",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "FastHook Control API — Project API keys",
+    "version": "0.1.0",
+    "description": "A deliberately partial contract for the stable project API key management surface. It does not claim coverage of the complete FastHook Control API."
+  },
+  "servers": [
+    {
+      "url": "https://api.fasthook.io"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Project API keys"
+    }
+  ],
+  "x-fasthook-contract-coverage": {
+    "status": "partial",
+    "surface": "project-api-keys",
+    "sourceFiles": [
+      "src/control-api.ts",
+      "src/control-api-authorization.ts",
+      "src/project-api-keys.ts"
+    ],
+    "excluded": [
+      "All Control API resources other than project-api-keys",
+      "Dashboard proxy paths under /api/control",
+      "CLI commands and widget runtime surfaces; synchronized artifacts do not imply owner-session feature support",
+      "The hand-authored public documentation OpenAPI document"
+    ]
+  },
+  "paths": {
+    "/v1/project-api-keys": {
+      "get": {
+        "operationId": "listProjectApiKeys",
+        "summary": "List project API keys",
+        "description": "Returns at most 100 keys for the selected team without raw credentials or hashes.",
+        "tags": [
+          "Project API keys"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectApiKeyListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createProjectApiKey",
+        "summary": "Create a project API key",
+        "description": "Creates a key and returns its raw credential exactly once with Cache-Control: no-store.",
+        "tags": [
+          "Project API keys"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectApiKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created key and one-time credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateProjectApiKeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid key policy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The non-revoked key limit was reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project-api-keys/{keyId}": {
+      "get": {
+        "operationId": "retrieveProjectApiKey",
+        "summary": "Retrieve a project API key",
+        "description": "Returns key metadata without the raw credential or its hash.",
+        "tags": [
+          "Project API keys"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "description": "Stable pak_* key identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ProjectApiKeyId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectApiKeyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateProjectApiKey",
+        "summary": "Update a project API key",
+        "description": "Partially updates mutable metadata and policy. Revoked keys cannot be changed.",
+        "tags": [
+          "Project API keys"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "description": "Stable pak_* key identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ProjectApiKeyId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectApiKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated project API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectApiKeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid key policy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revoked key or gated legacy policy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "replaceProjectApiKey",
+        "summary": "Update a project API key using PUT",
+        "description": "Uses the same partial-update semantics as PATCH; omitted fields retain their current values.",
+        "tags": [
+          "Project API keys"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "description": "Stable pak_* key identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ProjectApiKeyId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectApiKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated project API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectApiKeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid key policy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revoked key or gated legacy policy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteProjectApiKey",
+        "summary": "Permanently revoke a project API key",
+        "description": "DELETE is an idempotent permanent revocation and returns the resulting key metadata.",
+        "tags": [
+          "Project API keys"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "description": "Stable pak_* key identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ProjectApiKeyId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revoked project API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectApiKeyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Legacy policy cutover is not complete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project-api-keys/{keyId}/revoke": {
+      "post": {
+        "operationId": "revokeProjectApiKey",
+        "summary": "Permanently revoke a project API key",
+        "description": "Explicit revocation alias for clients that do not use DELETE.",
+        "tags": [
+          "Project API keys"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "description": "Stable pak_* key identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ProjectApiKeyId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revoked project API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectApiKeyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Key not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Legacy policy cutover is not complete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project-api-keys/{keyId}/audit": {
+      "get": {
+        "operationId": "listProjectApiKeyAudit",
+        "summary": "List project API key audit decisions",
+        "description": "Returns at most 100 coalesced audit decisions for the selected key.",
+        "tags": [
+          "Project API keys"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "description": "Stable pak_* key identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ProjectApiKeyId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project API key audit entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectApiKeyAuditListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "SessionBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Dashboard session bearer token. Project API keys cannot manage project API keys."
+      }
+    },
+    "parameters": {
+      "TeamId": {
+        "name": "x-team-id",
+        "in": "header",
+        "required": false,
+        "description": "Team selected for the operation. The session must belong to that team's owner or a site admin.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "ProjectApiKeyId": {
+        "type": "string",
+        "pattern": "^pak_(?:[0-9a-f]{32}|legacy_[0-9a-f]{32})$"
+      },
+      "ProjectApiKeyScope": {
+        "type": "string",
+        "enum": [
+          "control:read",
+          "control:execute",
+          "tunnel:connect"
+        ]
+      },
+      "ProjectApiKeyExecuteGrant": {
+        "type": "string",
+        "enum": [
+          "POST:/v1/sources/:id/run",
+          "POST:/v1/sources/:id/channel-retry",
+          "PUT:/v1/transformations/validate",
+          "PUT:/v1/transformations/run",
+          "POST:/v1/filters/test",
+          "POST:/v1/requests/bulk_operations",
+          "POST:/v1/requests/:id/retry",
+          "POST:/v1/events/bulk_operations",
+          "POST:/v1/events/:id/retry",
+          "POST:/v1/request-fixtures/:id/replay",
+          "POST:/v1/workflows/:id/runs/:executionId/retry"
+        ]
+      },
+      "ProjectApiKeyStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "disabled",
+          "revoked"
+        ]
+      },
+      "MutableProjectApiKeyStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "disabled"
+        ]
+      },
+      "ProjectApiKey": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "name",
+          "masked_key",
+          "status",
+          "scopes",
+          "execute_grants",
+          "rate_limit_per_minute",
+          "legacy_project_secret",
+          "created_by_user_id",
+          "last_used_at",
+          "secret_last_rotated_at",
+          "revoked_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ProjectApiKeyId"
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "masked_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProjectApiKeyStatus"
+          },
+          "scopes": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/ProjectApiKeyScope"
+            }
+          },
+          "execute_grants": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 11,
+            "items": {
+              "$ref": "#/components/schemas/ProjectApiKeyExecuteGrant"
+            }
+          },
+          "rate_limit_per_minute": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "legacy_project_secret": {
+            "type": "boolean"
+          },
+          "created_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "secret_last_rotated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProjectApiKeyWithSecret": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "name",
+          "masked_key",
+          "status",
+          "scopes",
+          "execute_grants",
+          "rate_limit_per_minute",
+          "legacy_project_secret",
+          "created_by_user_id",
+          "last_used_at",
+          "secret_last_rotated_at",
+          "revoked_at",
+          "created_at",
+          "updated_at",
+          "api_key"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ProjectApiKeyId"
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "masked_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProjectApiKeyStatus"
+          },
+          "scopes": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/ProjectApiKeyScope"
+            }
+          },
+          "execute_grants": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 11,
+            "items": {
+              "$ref": "#/components/schemas/ProjectApiKeyExecuteGrant"
+            }
+          },
+          "rate_limit_per_minute": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "legacy_project_secret": {
+            "type": "boolean"
+          },
+          "created_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "secret_last_rotated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "api_key": {
+            "type": "string",
+            "pattern": "^fhp_[0-9a-f]{64}$",
+            "description": "Returned only by createProjectApiKey. Store it immediately; it cannot be retrieved later."
+          }
+        }
+      },
+      "ProjectApiKeyResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProjectApiKey"
+          }
+        }
+      },
+      "CreateProjectApiKeyResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProjectApiKeyWithSecret"
+          }
+        }
+      },
+      "ProjectApiKeyListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/ProjectApiKey"
+            }
+          }
+        }
+      },
+      "CreateProjectApiKeyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "scopes"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "type": "object",
+              "required": [
+                "execute_grants"
+              ],
+              "properties": {
+                "execute_grants": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            },
+            "then": {
+              "type": "object",
+              "properties": {
+                "scopes": {
+                  "type": "array",
+                  "contains": {
+                    "const": "control:execute"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "\\S"
+          },
+          "scopes": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/ProjectApiKeyScope"
+            }
+          },
+          "execute_grants": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 11,
+            "items": {
+              "$ref": "#/components/schemas/ProjectApiKeyExecuteGrant"
+            }
+          },
+          "rate_limit_per_minute": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          }
+        }
+      },
+      "UpdateProjectApiKeyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "type": "object",
+              "required": [
+                "execute_grants"
+              ],
+              "properties": {
+                "execute_grants": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            },
+            "then": {
+              "type": "object",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "not": {
+                    "type": "object",
+                    "required": [
+                      "scopes"
+                    ],
+                    "properties": {
+                      "scopes": {}
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "scopes": {
+                      "type": "array",
+                      "contains": {
+                        "const": "control:execute"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "\\S"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MutableProjectApiKeyStatus"
+          },
+          "scopes": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/ProjectApiKeyScope"
+            }
+          },
+          "execute_grants": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 11,
+            "items": {
+              "$ref": "#/components/schemas/ProjectApiKeyExecuteGrant"
+            }
+          },
+          "rate_limit_per_minute": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          }
+        }
+      },
+      "ProjectApiKeyAuditDecision": {
+        "type": "string",
+        "enum": [
+          "allowed",
+          "denied",
+          "rate_limited"
+        ]
+      },
+      "ProjectApiKeyAuditEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key_id",
+          "team_id",
+          "route_key",
+          "permission",
+          "decision",
+          "reason",
+          "cf_ray",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "key_id": {
+            "$ref": "#/components/schemas/ProjectApiKeyId"
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "route_key": {
+            "type": "string",
+            "maxLength": 96
+          },
+          "permission": {
+            "type": "string",
+            "enum": [
+              "read",
+              "edit",
+              "rotate-secret",
+              "execute",
+              "tunnel-connect"
+            ]
+          },
+          "decision": {
+            "$ref": "#/components/schemas/ProjectApiKeyAuditDecision"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cf_ray": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProjectApiKeyAuditListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/ProjectApiKeyAuditEntry"
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

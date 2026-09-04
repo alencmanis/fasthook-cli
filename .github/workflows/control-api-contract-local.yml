@@ -1,0 +1,24 @@
+name: Control API local contract gate
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/control-api-contract-local.yml"
+      - "contracts/**"
+      - "scripts/check-control-api-contracts.mjs"
+      - "src/generated/control-api-client.ts"
+      - "test/control-api-contract.test.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  local-snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/check-control-api-contracts.mjs

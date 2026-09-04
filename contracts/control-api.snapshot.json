@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "sourceRepository": "alencmanis/fasthook",
+  "catalogVersion": "0.1.0",
+  "coverage": {
+    "status": "partial",
+    "surface": "project-api-keys",
+    "operations": 8,
+    "schemas": 16
+  },
+  "consumer": "cli",
+  "integration": "compiled-typed-client-no-owner-command",
+  "artifacts": [
+    {
+      "source": "generated/control-api.openapi.json",
+      "target": "contracts/control-api.openapi.json",
+      "sha256": "0ccfbdb113f98aceccc5f93d6caa5deeb779d37514c79b3f65112bcc15537d69"
+    },
+    {
+      "source": "generated/control-api.schemas.json",
+      "target": "contracts/control-api.schemas.json",
+      "sha256": "3f879d26aafc8a83a027a8571f3294e5931147c80539b79e3e5e8fabe5f299d4"
+    },
+    {
+      "source": "src/generated/control-api-client.ts",
+      "target": "src/generated/control-api-client.ts",
+      "sha256": "eceb92078e27662f51fedb0e3b1a2c0f9b737501503caff561be24518e3f3ae0"
+    }
+  ]
+}

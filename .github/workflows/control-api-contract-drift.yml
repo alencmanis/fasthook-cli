@@ -1,0 +1,53 @@
+name: Control API contract drift
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-contract-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BACKEND_READ_TOKEN: ${{ secrets.FASTHOOK_BACKEND_READ_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect backend access
+        id: backend-access
+        shell: bash
+        run: |
+          if [[ -n "$BACKEND_READ_TOKEN" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Explain skipped cross-repository check
+        if: steps.backend-access.outputs.available != 'true'
+        run: echo "::warning::Add a read-only FASTHOOK_BACKEND_READ_TOKEN repository secret to enforce backend contract drift checks."
+
+      - name: Check out canonical backend contracts
+        if: steps.backend-access.outputs.available == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: alencmanis/fasthook
+          path: fasthook-backend
+          token: ${{ secrets.FASTHOOK_BACKEND_READ_TOKEN }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        if: steps.backend-access.outputs.available == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify generated Control API against backend
+        if: steps.backend-access.outputs.available == 'true'
+        env:
+          FASTHOOK_BACKEND_DIR: fasthook-backend
+        run: node scripts/check-control-api-contracts.mjs

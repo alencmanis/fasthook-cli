@@ -371,6 +371,24 @@ npx . api PATCH /destinations/des_xxx --json-file destination.json
 | `npm test` | Собирает проект и запускает тесты. |
 | `npm run build:exe` | Собирает Windows `fasthook.exe`. |
 
+## Generated Control API contract
+
+`contracts/control-api.openapi.json`, `contracts/control-api.schemas.json` and
+`src/generated/control-api-client.ts` are synchronized from the backend-owned contract catalog.
+The snapshot is intentionally partial: it covers only the eight project API key management
+operations. Run `node scripts/check-control-api-contracts.mjs` to verify local checksums. Pull requests
+run only this credential-free local gate. A separate trusted push/manual CI job compares the artifacts
+with the backend when the read-only `FASTHOOK_BACKEND_READ_TOKEN` secret is configured; PR-controlled
+code never receives that token.
+
+The generated client's direct mode requires an explicit owner/site-admin session bearer in a
+non-browser/non-Worker server context. It accepts the official HTTPS API origin by default; another
+HTTPS origin requires an explicit matching `trustedServerOrigin`. Browser callers must use cookie mode
+through the dashboard proxy. Existing CLI commands continue to authenticate with a project API key and
+do not expose the owner-only key-management methods yet.
+Regenerate from a sibling backend checkout with
+`node ../fasthook/scripts/sync-control-api-consumers.mjs --write --consumer cli`.
+
 ## Примеры
 
 ```bash
