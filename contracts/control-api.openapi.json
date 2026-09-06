@@ -2,9 +2,9 @@
   "openapi": "3.1.0",
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
-    "title": "FastHook Control API — Project API keys",
-    "version": "0.1.0",
-    "description": "A deliberately partial contract for the stable project API key management surface. It does not claim coverage of the complete FastHook Control API."
+    "title": "FastHook Control API — Partial contract",
+    "version": "0.2.0",
+    "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
     {
@@ -14,18 +14,26 @@
   "tags": [
     {
       "name": "Project API keys"
+    },
+    {
+      "name": "Filters"
     }
   ],
   "x-fasthook-contract-coverage": {
     "status": "partial",
-    "surface": "project-api-keys",
+    "surfaces": [
+      "project-api-keys",
+      "filter-test"
+    ],
     "sourceFiles": [
       "src/control-api.ts",
       "src/control-api-authorization.ts",
+      "src/control-api-filters.ts",
+      "src/filter-rule.ts",
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys",
+      "All Control API resources other than project-api-keys and POST /v1/filters/test",
       "Dashboard proxy paths under /api/control",
       "CLI commands and widget runtime surfaces; synchronized artifacts do not imply owner-session feature support",
       "The hand-authored public documentation OpenAPI document"
@@ -661,6 +669,82 @@
           }
         }
       }
+    },
+    "/v1/filters/test": {
+      "post": {
+        "operationId": "testFilter",
+        "summary": "Test filter conditions",
+        "description": "Evaluates filter conditions against a supplied request envelope without storing either value.",
+        "tags": [
+          "Filters"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_execute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FilterTestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Filter evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterTestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or empty filter conditions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Execute permission or the exact project-key grant is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -669,6 +753,12 @@
         "type": "http",
         "scheme": "bearer",
         "description": "Dashboard session bearer token. Project API keys cannot manage project API keys."
+      },
+      "ProjectApiKeyBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "fhp_*",
+        "description": "Project API key. Only operations declaring this security scheme accept it, subject to scopes and exact execute grants."
       }
     },
     "parameters": {
@@ -1233,6 +1323,129 @@
             "items": {
               "$ref": "#/components/schemas/ProjectApiKeyAuditEntry"
             }
+          }
+        }
+      },
+      "JsonValue": {
+        "anyOf": [
+          {
+            "type": "null"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        ]
+      },
+      "NonNullJsonValue": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        ]
+      },
+      "FilterConditions": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "headers": {
+            "$ref": "#/components/schemas/NonNullJsonValue"
+          },
+          "body": {
+            "$ref": "#/components/schemas/NonNullJsonValue"
+          },
+          "query": {
+            "$ref": "#/components/schemas/NonNullJsonValue"
+          },
+          "path": {
+            "$ref": "#/components/schemas/NonNullJsonValue"
+          }
+        }
+      },
+      "FilterTestInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "body": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "path": {
+            "$ref": "#/components/schemas/JsonValue"
+          }
+        }
+      },
+      "FilterTestRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "filter"
+        ],
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/FilterConditions"
+          },
+          "input": {
+            "$ref": "#/components/schemas/FilterTestInput"
+          }
+        }
+      },
+      "FilterTestResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "matched"
+        ],
+        "properties": {
+          "matched": {
+            "type": "boolean"
           }
         }
       },

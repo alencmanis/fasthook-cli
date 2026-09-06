@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://api.fasthook.io/contracts/control-api/project-api-keys.schema.json",
-  "title": "FastHook Control API — Project API keys",
-  "description": "A deliberately partial contract for the stable project API key management surface. It does not claim coverage of the complete FastHook Control API.",
-  "$comment": "Coverage: partial; surface: project-api-keys.",
+  "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
+  "title": "FastHook Control API — Partial contract",
+  "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-test.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -555,6 +555,129 @@
           "items": {
             "$ref": "#/$defs/ProjectApiKeyAuditEntry"
           }
+        }
+      }
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      ]
+    },
+    "NonNullJsonValue": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      ]
+    },
+    "FilterConditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "headers": {
+          "$ref": "#/$defs/NonNullJsonValue"
+        },
+        "body": {
+          "$ref": "#/$defs/NonNullJsonValue"
+        },
+        "query": {
+          "$ref": "#/$defs/NonNullJsonValue"
+        },
+        "path": {
+          "$ref": "#/$defs/NonNullJsonValue"
+        }
+      }
+    },
+    "FilterTestInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "path": {
+          "$ref": "#/$defs/JsonValue"
+        }
+      }
+    },
+    "FilterTestRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "filter"
+      ],
+      "properties": {
+        "filter": {
+          "$ref": "#/$defs/FilterConditions"
+        },
+        "input": {
+          "$ref": "#/$defs/FilterTestInput"
+        }
+      }
+    },
+    "FilterTestResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "matched"
+      ],
+      "properties": {
+        "matched": {
+          "type": "boolean"
         }
       }
     },

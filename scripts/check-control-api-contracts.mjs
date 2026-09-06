@@ -12,6 +12,11 @@ const EXPECTED_ARTIFACTS = new Set([
 
 function normalized(text) { return text.replace(/\r\n/g, "\n"); }
 function sha256(text) { return createHash("sha256").update(normalized(text)).digest("hex"); }
+function operationCount(openapi) {
+  const methods = new Set(["get", "post", "put", "patch", "delete", "head", "options", "trace"]);
+  return Object.values(openapi.paths ?? {}).reduce((count, pathItem) => count
+    + Object.keys(pathItem ?? {}).filter((key) => methods.has(key)).length, 0);
+}
 function inside(base, target) {
   const path = relative(base, target);
   return path !== "" && !path.startsWith("..") && !isAbsolute(path);
@@ -20,12 +25,18 @@ function inside(base, target) {
 export async function checkControlApiContracts(options = {}) {
   const repositoryRoot = resolve(options.root ?? root);
   const snapshot = JSON.parse(await readFile(resolve(repositoryRoot, "contracts/control-api.snapshot.json"), "utf8"));
+  const openapi = JSON.parse(await readFile(resolve(repositoryRoot, "contracts/control-api.openapi.json"), "utf8"));
+  const schemas = JSON.parse(await readFile(resolve(repositoryRoot, "contracts/control-api.schemas.json"), "utf8"));
+  const contractCoverage = openapi["x-fasthook-contract-coverage"];
   if (snapshot.schemaVersion !== 1 || snapshot.consumer !== "cli"
     || snapshot.sourceRepository !== "alencmanis/fasthook" || typeof snapshot.catalogVersion !== "string"
     || snapshot.catalogVersion.length === 0
     || snapshot.integration !== "compiled-typed-client-no-owner-command"
-    || snapshot.coverage?.status !== "partial" || snapshot.coverage?.surface !== "project-api-keys"
-    || snapshot.coverage?.operations !== 8 || snapshot.coverage?.schemas !== 16) {
+    || snapshot.coverage?.status !== "partial" || contractCoverage?.status !== "partial"
+    || !Array.isArray(snapshot.coverage?.surfaces) || !snapshot.coverage.surfaces.includes("project-api-keys")
+    || JSON.stringify(snapshot.coverage.surfaces) !== JSON.stringify(contractCoverage.surfaces)
+    || snapshot.coverage.operations !== operationCount(openapi)
+    || snapshot.coverage.schemas !== Object.keys(schemas.$defs ?? {}).length) {
     throw new Error("Invalid generated Control API CLI snapshot metadata");
   }
   const targets = new Set();

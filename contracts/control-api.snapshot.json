@@ -1,12 +1,15 @@
 {
   "schemaVersion": 1,
   "sourceRepository": "alencmanis/fasthook",
-  "catalogVersion": "0.1.0",
+  "catalogVersion": "0.2.0",
   "coverage": {
     "status": "partial",
-    "surface": "project-api-keys",
-    "operations": 8,
-    "schemas": 16
+    "surfaces": [
+      "project-api-keys",
+      "filter-test"
+    ],
+    "operations": 9,
+    "schemas": 22
   },
   "consumer": "cli",
   "integration": "compiled-typed-client-no-owner-command",
@@ -14,17 +17,17 @@
     {
       "source": "generated/control-api.openapi.json",
       "target": "contracts/control-api.openapi.json",
-      "sha256": "0ccfbdb113f98aceccc5f93d6caa5deeb779d37514c79b3f65112bcc15537d69"
+      "sha256": "32da7ab54f0097fcd955f7385323b353aa69e462d8041afd181296260695b2b7"
     },
     {
       "source": "generated/control-api.schemas.json",
       "target": "contracts/control-api.schemas.json",
-      "sha256": "3f879d26aafc8a83a027a8571f3294e5931147c80539b79e3e5e8fabe5f299d4"
+      "sha256": "f46fe656bb1dce91720902de8538bcbec8811cd18867cc07270c4e7d9ce051d1"
     },
     {
       "source": "src/generated/control-api-client.ts",
       "target": "src/generated/control-api-client.ts",
-      "sha256": "eceb92078e27662f51fedb0e3b1a2c0f9b737501503caff561be24518e3f3ae0"
+      "sha256": "3b401a1aa1ea0603f85842c9d6f2c42f02204832b843b756f3024e887e3b5db1"
     }
   ]
 }
