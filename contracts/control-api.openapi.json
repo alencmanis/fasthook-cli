@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -17,23 +17,28 @@
     },
     {
       "name": "Filters"
+    },
+    {
+      "name": "Transformations"
     }
   ],
   "x-fasthook-contract-coverage": {
     "status": "partial",
     "surfaces": [
       "project-api-keys",
-      "filter-test"
+      "filter-test",
+      "transformation-test"
     ],
     "sourceFiles": [
       "src/control-api.ts",
       "src/control-api-authorization.ts",
       "src/control-api-filters.ts",
+      "src/control-api-transformations.ts",
       "src/filter-rule.ts",
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys and POST /v1/filters/test",
+      "All Control API resources other than project-api-keys, POST /v1/filters/test, and the stateless Transformation validate/run endpoints",
       "Dashboard proxy paths under /api/control",
       "CLI commands and widget runtime surfaces; synchronized artifacts do not imply owner-session feature support",
       "The hand-authored public documentation OpenAPI document"
@@ -745,6 +750,168 @@
           }
         }
       }
+    },
+    "/v1/transformations/validate": {
+      "put": {
+        "operationId": "validateTransformation",
+        "summary": "Validate transformation code",
+        "description": "Validates FastHook DSL code and returns its runtime capabilities without executing or storing it.",
+        "tags": [
+          "Transformations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_execute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransformationValidateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transformation validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransformationValidateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or unsupported transformation code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Execute permission or the exact project-key grant is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transformations/run": {
+      "put": {
+        "operationId": "runTransformation",
+        "summary": "Run a transformation preview",
+        "description": "Executes supplied FastHook DSL code against a request envelope without persisting an execution.",
+        "tags": [
+          "Transformations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_execute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransformationRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transformation preview result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransformationRunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or transformation execution failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Execute permission or the exact project-key grant is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stored transformation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1446,6 +1613,238 @@
         "properties": {
           "matched": {
             "type": "boolean"
+          }
+        }
+      },
+      "TransformationRunInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "body": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "path": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          }
+        }
+      },
+      "TransformationRunOutput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "headers",
+          "body",
+          "query",
+          "path",
+          "method"
+        ],
+        "properties": {
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "body": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "path": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          }
+        }
+      },
+      "TransformationValidateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "code_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "TransformationValidateResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "valid",
+          "runtime",
+          "ast_node_count",
+          "cache_hit",
+          "limits",
+          "capabilities"
+        ],
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "ast_node_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cache_hit": {
+            "type": "boolean"
+          },
+          "limits": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "capabilities": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        }
+      },
+      "TransformationRunRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "env": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "request": {
+            "$ref": "#/components/schemas/TransformationRunInput"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "TransformationRunTiming": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "started_at",
+          "finished_at",
+          "duration_ms"
+        ],
+        "properties": {
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "TransformationRunResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "runtime",
+          "stats",
+          "log_level",
+          "console",
+          "warnings",
+          "request",
+          "transformation_run_time"
+        ],
+        "properties": {
+          "runtime": {
+            "type": "string"
+          },
+          "stats": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "log_level": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warn",
+              "error"
+            ]
+          },
+          "console": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "request": {
+            "$ref": "#/components/schemas/TransformationRunOutput"
+          },
+          "transformation_run_time": {
+            "$ref": "#/components/schemas/TransformationRunTiming"
           }
         }
       },
