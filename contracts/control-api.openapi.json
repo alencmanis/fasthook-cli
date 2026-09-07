@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -29,6 +29,7 @@
     "status": "partial",
     "surfaces": [
       "project-api-keys",
+      "filter-crud",
       "filter-test",
       "transformation-test",
       "workflow-list",
@@ -44,7 +45,7 @@
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys, POST /v1/filters/test, the stateless Transformation validate/run endpoints, and Workflow list/detail reads",
+      "All Control API resources other than project-api-keys, stored Filter CRUD/test, the stateless Transformation validate/run endpoints, and Workflow list/detail reads",
       "Dashboard proxy paths under /api/control",
       "CLI commands and widget runtime surfaces; synchronized artifacts do not imply owner-session feature support",
       "The hand-authored public documentation OpenAPI document"
@@ -670,6 +671,488 @@
           },
           "403": {
             "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/filters": {
+      "get": {
+        "operationId": "listFilters",
+        "summary": "List stored filters",
+        "description": "Returns the selected team's bounded stored Filter models using the route's default pagination order.",
+        "tags": [
+          "Filters"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stored Filters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team read access or the project-key read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createFilter",
+        "summary": "Create a stored filter",
+        "description": "Creates a named reusable Filter for the selected team.",
+        "tags": [
+          "Filters"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFilterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created Filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid name or empty conditions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A Filter with the same name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterAlreadyExistsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/filters/{filterId}": {
+      "get": {
+        "operationId": "retrieveFilter",
+        "summary": "Retrieve a stored filter",
+        "description": "Returns one stored Filter and its linked-Connection summary.",
+        "tags": [
+          "Filters"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "filterId",
+            "in": "path",
+            "required": true,
+            "description": "Stored Filter identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/FilterId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stored Filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team read access or the project-key read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Filter not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateFilter",
+        "summary": "Update a stored filter",
+        "description": "Updates a Filter and refreshes snapshots for linked Connections.",
+        "tags": [
+          "Filters"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "filterId",
+            "in": "path",
+            "required": true,
+            "description": "Stored Filter identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/FilterId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFilterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated Filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid name or empty conditions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Filter not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A Filter with the same name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterAlreadyExistsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "replaceFilter",
+        "summary": "Update a stored filter using PUT",
+        "description": "Uses the same partial-update and linked-snapshot semantics as PATCH.",
+        "tags": [
+          "Filters"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "filterId",
+            "in": "path",
+            "required": true,
+            "description": "Stored Filter identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/FilterId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFilterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated Filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid name or empty conditions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Filter not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A Filter with the same name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterAlreadyExistsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteFilter",
+        "summary": "Delete a stored filter",
+        "description": "Deletes a Filter after detaching its immutable conditions into linked Connection snapshots.",
+        "tags": [
+          "Filters"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "filterId",
+            "in": "path",
+            "required": true,
+            "description": "Stored Filter identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/FilterId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted Filter identifier",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteFilterResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A project owner or site-admin session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Filter not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1744,6 +2227,238 @@
         "properties": {
           "matched": {
             "type": "boolean"
+          }
+        }
+      },
+      "FilterId": {
+        "type": "string",
+        "minLength": 1
+      },
+      "StoredFilterConditions": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "headers": {
+            "$ref": "#/components/schemas/NonNullJsonValue"
+          },
+          "body": {
+            "$ref": "#/components/schemas/NonNullJsonValue"
+          },
+          "query": {
+            "$ref": "#/components/schemas/NonNullJsonValue"
+          },
+          "path": {
+            "$ref": "#/components/schemas/NonNullJsonValue"
+          }
+        }
+      },
+      "FilterModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "name",
+          "conditions",
+          "connections_count",
+          "sample_connection_id",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/FilterId"
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 155,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/StoredFilterConditions"
+          },
+          "headers": {
+            "$ref": "#/components/schemas/NonNullJsonValue"
+          },
+          "body": {
+            "$ref": "#/components/schemas/NonNullJsonValue"
+          },
+          "query": {
+            "$ref": "#/components/schemas/NonNullJsonValue"
+          },
+          "path": {
+            "$ref": "#/components/schemas/NonNullJsonValue"
+          },
+          "connections_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sample_connection_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FilterPagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "order_by",
+          "dir",
+          "limit"
+        ],
+        "properties": {
+          "order_by": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "updated_at",
+              "name"
+            ]
+          },
+          "dir": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 255
+          }
+        }
+      },
+      "FilterListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pagination",
+          "count",
+          "models"
+        ],
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/FilterPagination"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "models": {
+            "type": "array",
+            "maxItems": 255,
+            "items": {
+              "$ref": "#/components/schemas/FilterModel"
+            }
+          }
+        }
+      },
+      "CreateFilterRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "conditions"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 155,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/FilterConditions"
+          }
+        }
+      },
+      "UpdateFilterRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 155,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/FilterConditions"
+          }
+        }
+      },
+      "DeleteFilterResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/FilterId"
+          }
+        }
+      },
+      "FilterAlreadyExistsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "status",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "const": "RESOURCE_ALREADY_EXISTS"
+          },
+          "status": {
+            "type": "integer",
+            "const": 409
+          },
+          "message": {
+            "type": "string",
+            "const": "Resource already exists"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "resource_type"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/FilterId"
+              },
+              "resource_type": {
+                "type": "string",
+                "const": "filter"
+              }
+            }
           }
         }
       },

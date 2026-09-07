@@ -3,7 +3,7 @@
   "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
   "title": "FastHook Control API — Partial contract",
   "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
-  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-test, transformation-test, workflow-list, workflow-detail.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-test, workflow-list, workflow-detail.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -678,6 +678,238 @@
       "properties": {
         "matched": {
           "type": "boolean"
+        }
+      }
+    },
+    "FilterId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "StoredFilterConditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "headers": {
+          "$ref": "#/$defs/NonNullJsonValue"
+        },
+        "body": {
+          "$ref": "#/$defs/NonNullJsonValue"
+        },
+        "query": {
+          "$ref": "#/$defs/NonNullJsonValue"
+        },
+        "path": {
+          "$ref": "#/$defs/NonNullJsonValue"
+        }
+      }
+    },
+    "FilterModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "team_id",
+        "name",
+        "conditions",
+        "connections_count",
+        "sample_connection_id",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/FilterId"
+        },
+        "team_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 155,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "conditions": {
+          "$ref": "#/$defs/StoredFilterConditions"
+        },
+        "headers": {
+          "$ref": "#/$defs/NonNullJsonValue"
+        },
+        "body": {
+          "$ref": "#/$defs/NonNullJsonValue"
+        },
+        "query": {
+          "$ref": "#/$defs/NonNullJsonValue"
+        },
+        "path": {
+          "$ref": "#/$defs/NonNullJsonValue"
+        },
+        "connections_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sample_connection_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "FilterPagination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_by",
+        "dir",
+        "limit"
+      ],
+      "properties": {
+        "order_by": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "updated_at",
+            "name"
+          ]
+        },
+        "dir": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 255
+        }
+      }
+    },
+    "FilterListResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pagination",
+        "count",
+        "models"
+      ],
+      "properties": {
+        "pagination": {
+          "$ref": "#/$defs/FilterPagination"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 255,
+          "items": {
+            "$ref": "#/$defs/FilterModel"
+          }
+        }
+      }
+    },
+    "CreateFilterRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "conditions"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 155,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "conditions": {
+          "$ref": "#/$defs/FilterConditions"
+        }
+      }
+    },
+    "UpdateFilterRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 155,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "conditions": {
+          "$ref": "#/$defs/FilterConditions"
+        }
+      }
+    },
+    "DeleteFilterResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/FilterId"
+        }
+      }
+    },
+    "FilterAlreadyExistsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "status",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "const": "RESOURCE_ALREADY_EXISTS"
+        },
+        "status": {
+          "type": "integer",
+          "const": 409
+        },
+        "message": {
+          "type": "string",
+          "const": "Resource already exists"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "resource_type"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/FilterId"
+            },
+            "resource_type": {
+              "type": "string",
+              "const": "filter"
+            }
+          }
         }
       }
     },
