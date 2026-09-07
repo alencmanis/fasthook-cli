@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -31,7 +31,8 @@
       "project-api-keys",
       "filter-test",
       "transformation-test",
-      "workflow-list"
+      "workflow-list",
+      "workflow-detail"
     ],
     "sourceFiles": [
       "src/control-api.ts",
@@ -43,7 +44,7 @@
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys, POST /v1/filters/test, the stateless Transformation validate/run endpoints, and GET /v1/workflows",
+      "All Control API resources other than project-api-keys, POST /v1/filters/test, the stateless Transformation validate/run endpoints, and Workflow list/detail reads",
       "Dashboard proxy paths under /api/control",
       "CLI commands and widget runtime surfaces; synchronized artifacts do not imply owner-session feature support",
       "The hand-authored public documentation OpenAPI document"
@@ -960,6 +961,78 @@
           },
           "403": {
             "description": "Team membership or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workflows/{workflowId}": {
+      "get": {
+        "operationId": "retrieveWorkflow",
+        "summary": "Retrieve a workflow",
+        "description": "Returns one Workflow with its editable sequential graph and current runtime capability assessment.",
+        "tags": [
+          "Workflows"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "workflowId",
+            "in": "path",
+            "required": true,
+            "description": "Stable wfl_* Workflow identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/WorkflowId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workflow graph and capabilities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workflow not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -2150,6 +2223,373 @@
             "maxItems": 100,
             "items": {
               "$ref": "#/components/schemas/WorkflowSummary"
+            }
+          }
+        }
+      },
+      "WorkflowStepId": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_-]{4,96}$"
+      },
+      "WorkflowStepKind": {
+        "type": "string",
+        "enum": [
+          "action",
+          "destination",
+          "transformation",
+          "filter",
+          "delay",
+          "branch"
+        ]
+      },
+      "WorkflowStep": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "resource_id",
+          "action",
+          "invocation_inputs",
+          "action_revision_id",
+          "config",
+          "position"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/WorkflowStepId"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WorkflowStepKind"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 155
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "action": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "invocation_inputs": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "action_revision_id": {
+            "type": "null"
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "position": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "x",
+              "y"
+            ],
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "WorkflowEdge": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source_type",
+          "source_step_id",
+          "source_port",
+          "target_step_id",
+          "target_port",
+          "mapping",
+          "condition",
+          "position"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{4,96}$"
+          },
+          "source_type": {
+            "type": "string",
+            "enum": [
+              "trigger",
+              "step"
+            ]
+          },
+          "source_step_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowStepId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_port": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "target_step_id": {
+            "$ref": "#/components/schemas/WorkflowStepId"
+          },
+          "target_port": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "mapping": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "WorkflowRuntimeIssue": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "step_id",
+          "step_number",
+          "step_name",
+          "field"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "workflow_step_runtime_unsupported",
+              "workflow_fan_in_unsupported"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "step_id": {
+            "$ref": "#/components/schemas/WorkflowStepId"
+          },
+          "step_number": {
+            "type": "integer",
+            "minimum": 2
+          },
+          "step_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 155
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "kind",
+              "resource_id",
+              "edges"
+            ]
+          }
+        }
+      },
+      "WorkflowDetailCapabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trigger_input",
+          "step_output_input",
+          "branching",
+          "fan_out",
+          "sequential_action_loop",
+          "join_draft_supported",
+          "runtime_executable",
+          "runtime_issue"
+        ],
+        "properties": {
+          "trigger_input": {
+            "type": "boolean"
+          },
+          "step_output_input": {
+            "type": "boolean"
+          },
+          "branching": {
+            "type": "boolean"
+          },
+          "fan_out": {
+            "type": "boolean"
+          },
+          "sequential_action_loop": {
+            "type": "boolean"
+          },
+          "join_draft_supported": {
+            "type": "boolean",
+            "const": false
+          },
+          "runtime_executable": {
+            "type": "boolean"
+          },
+          "runtime_issue": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowRuntimeIssue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "WorkflowDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "source_id",
+          "name",
+          "status",
+          "version",
+          "source",
+          "steps_count",
+          "edges_count",
+          "capabilities",
+          "created_at",
+          "updated_at",
+          "steps",
+          "edges"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/WorkflowId"
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 155
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkflowStatus"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowSourceSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steps_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "edges_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 250
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/WorkflowDetailCapabilities"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "steps": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/WorkflowStep"
+            }
+          },
+          "edges": {
+            "type": "array",
+            "maxItems": 250,
+            "items": {
+              "$ref": "#/components/schemas/WorkflowEdge"
             }
           }
         }
