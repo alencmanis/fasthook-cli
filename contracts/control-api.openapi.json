@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -20,6 +20,9 @@
     },
     {
       "name": "Transformations"
+    },
+    {
+      "name": "Workflows"
     }
   ],
   "x-fasthook-contract-coverage": {
@@ -27,18 +30,20 @@
     "surfaces": [
       "project-api-keys",
       "filter-test",
-      "transformation-test"
+      "transformation-test",
+      "workflow-list"
     ],
     "sourceFiles": [
       "src/control-api.ts",
       "src/control-api-authorization.ts",
       "src/control-api-filters.ts",
       "src/control-api-transformations.ts",
+      "src/control-api-workflows.ts",
       "src/filter-rule.ts",
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys, POST /v1/filters/test, and the stateless Transformation validate/run endpoints",
+      "All Control API resources other than project-api-keys, POST /v1/filters/test, the stateless Transformation validate/run endpoints, and GET /v1/workflows",
       "Dashboard proxy paths under /api/control",
       "CLI commands and widget runtime surfaces; synchronized artifacts do not imply owner-session feature support",
       "The hand-authored public documentation OpenAPI document"
@@ -912,6 +917,59 @@
           }
         }
       }
+    },
+    "/v1/workflows": {
+      "get": {
+        "operationId": "listWorkflows",
+        "summary": "List workflows",
+        "description": "Returns the selected team's bounded Workflow summaries and their currently advertised sequential capabilities.",
+        "tags": [
+          "Workflows"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workflow summaries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -933,7 +991,7 @@
         "name": "x-team-id",
         "in": "header",
         "required": false,
-        "description": "Team selected for the operation. The session must belong to that team's owner or a site admin.",
+        "description": "Team selected for the operation. The authenticated subject must have the role declared by the operation.",
         "schema": {
           "type": "string"
         }
@@ -1845,6 +1903,254 @@
           },
           "transformation_run_time": {
             "$ref": "#/components/schemas/TransformationRunTiming"
+          }
+        }
+      },
+      "WorkflowId": {
+        "type": "string",
+        "pattern": "^wfl_[A-Za-z0-9_-]+$"
+      },
+      "WorkflowStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "active",
+          "paused",
+          "disabled"
+        ]
+      },
+      "WorkflowSummaryCapabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trigger_input",
+          "step_output_input",
+          "branching",
+          "fan_out",
+          "sequential_action_loop",
+          "join_draft_supported"
+        ],
+        "properties": {
+          "trigger_input": {
+            "type": "boolean"
+          },
+          "step_output_input": {
+            "type": "boolean"
+          },
+          "branching": {
+            "type": "boolean"
+          },
+          "fan_out": {
+            "type": "boolean"
+          },
+          "sequential_action_loop": {
+            "type": "boolean"
+          },
+          "join_draft_supported": {
+            "type": "boolean",
+            "const": false
+          }
+        }
+      },
+      "WorkflowSourceSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "type",
+          "status",
+          "config",
+          "provider_key",
+          "definition_key",
+          "definition_name",
+          "output_schema",
+          "export_path",
+          "primary_output",
+          "schema_provenance",
+          "sample"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "provider_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "definition_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "definition_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "output_schema": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "export_path": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "primary_output": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "schema_provenance": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "sample": {
+            "$ref": "#/components/schemas/JsonValue"
+          }
+        }
+      },
+      "WorkflowSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "source_id",
+          "name",
+          "status",
+          "version",
+          "source",
+          "steps_count",
+          "edges_count",
+          "capabilities",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/WorkflowId"
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 155
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkflowStatus"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowSourceSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steps_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "edges_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 250
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/WorkflowSummaryCapabilities"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WorkflowListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "count",
+          "models"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "models": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/WorkflowSummary"
+            }
           }
         }
       },

@@ -9,7 +9,7 @@ import { checkControlApiContracts } from "../scripts/check-control-api-contracts
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-test("CLI compiles the checksum-locked partial project API key client", async () => {
+test("CLI compiles the checksum-locked partial Control API client", async () => {
   assert.deepEqual(await checkControlApiContracts({ root: repositoryRoot }), {
     ok: true,
     consumer: "cli",
@@ -21,8 +21,8 @@ test("CLI compiles the checksum-locked partial project API key client", async ()
   ), "utf8"));
   assert.equal(openapi["x-fasthook-contract-coverage"].status, "partial");
   assert.deepEqual(openapi["x-fasthook-contract-coverage"].surfaces,
-    ["project-api-keys", "filter-test", "transformation-test"]);
-  assert.equal(Object.keys(openapi.components.schemas).length, 29);
+    ["project-api-keys", "filter-test", "transformation-test", "workflow-list"]);
+  assert.equal(Object.keys(openapi.components.schemas).length, 35);
 });
 
 test("CLI generated client preserves the owner-session authentication boundary", async () => {

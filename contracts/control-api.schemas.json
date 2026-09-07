@@ -3,7 +3,7 @@
   "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
   "title": "FastHook Control API — Partial contract",
   "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
-  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-test, transformation-test.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-test, transformation-test, workflow-list.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -910,6 +910,254 @@
         },
         "transformation_run_time": {
           "$ref": "#/$defs/TransformationRunTiming"
+        }
+      }
+    },
+    "WorkflowId": {
+      "type": "string",
+      "pattern": "^wfl_[A-Za-z0-9_-]+$"
+    },
+    "WorkflowStatus": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "paused",
+        "disabled"
+      ]
+    },
+    "WorkflowSummaryCapabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trigger_input",
+        "step_output_input",
+        "branching",
+        "fan_out",
+        "sequential_action_loop",
+        "join_draft_supported"
+      ],
+      "properties": {
+        "trigger_input": {
+          "type": "boolean"
+        },
+        "step_output_input": {
+          "type": "boolean"
+        },
+        "branching": {
+          "type": "boolean"
+        },
+        "fan_out": {
+          "type": "boolean"
+        },
+        "sequential_action_loop": {
+          "type": "boolean"
+        },
+        "join_draft_supported": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    },
+    "WorkflowSourceSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "type",
+        "status",
+        "config",
+        "provider_key",
+        "definition_key",
+        "definition_name",
+        "output_schema",
+        "export_path",
+        "primary_output",
+        "schema_provenance",
+        "sample"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "provider_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "definition_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "definition_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output_schema": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "export_path": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "primary_output": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "schema_provenance": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "sample": {
+          "$ref": "#/$defs/JsonValue"
+        }
+      }
+    },
+    "WorkflowSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "team_id",
+        "source_id",
+        "name",
+        "status",
+        "version",
+        "source",
+        "steps_count",
+        "edges_count",
+        "capabilities",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/WorkflowId"
+        },
+        "team_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 155
+        },
+        "status": {
+          "$ref": "#/$defs/WorkflowStatus"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkflowSourceSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "steps_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "edges_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 250
+        },
+        "capabilities": {
+          "$ref": "#/$defs/WorkflowSummaryCapabilities"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "WorkflowListResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "models"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/WorkflowSummary"
+          }
         }
       }
     },
