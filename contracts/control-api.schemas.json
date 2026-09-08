@@ -3,7 +3,7 @@
   "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
   "title": "FastHook Control API — Partial contract",
   "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
-  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-test, transformation-capabilities, workflow-list, workflow-detail.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-test, transformation-capabilities, workflow-list, workflow-detail.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -908,6 +908,290 @@
             "resource_type": {
               "type": "string",
               "const": "filter"
+            }
+          }
+        }
+      }
+    },
+    "TransformationId": {
+      "type": "string",
+      "pattern": "^trs_[A-Za-z0-9_-]+$"
+    },
+    "TransformationRuntime": {
+      "type": "string",
+      "enum": [
+        "fasthook-dsl-v1",
+        "javascript-legacy"
+      ]
+    },
+    "TransformationEnvironment": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "TransformationMetricBins": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "TransformationModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "team_id",
+        "name",
+        "code",
+        "updated_at",
+        "created_at",
+        "code_hash",
+        "deleted_at",
+        "env",
+        "runtime",
+        "executions_24h_count",
+        "executions_24h_successful_count",
+        "executions_24h_failed_count",
+        "executions_24h_successful_bins",
+        "executions_24h_failed_bins",
+        "error_code_counts",
+        "connections_count"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/TransformationId"
+        },
+        "team_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 155,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "code_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deleted_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "env": {
+          "$ref": "#/$defs/TransformationEnvironment"
+        },
+        "runtime": {
+          "$ref": "#/$defs/TransformationRuntime"
+        },
+        "executions_24h_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "executions_24h_successful_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "executions_24h_failed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "executions_24h_successful_bins": {
+          "$ref": "#/$defs/TransformationMetricBins"
+        },
+        "executions_24h_failed_bins": {
+          "$ref": "#/$defs/TransformationMetricBins"
+        },
+        "error_code_counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "connections_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "TransformationPagination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_by",
+        "dir",
+        "limit"
+      ],
+      "properties": {
+        "order_by": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "updated_at",
+            "name"
+          ]
+        },
+        "dir": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 255
+        }
+      }
+    },
+    "TransformationListResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pagination",
+        "count",
+        "models"
+      ],
+      "properties": {
+        "pagination": {
+          "$ref": "#/$defs/TransformationPagination"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 255,
+          "items": {
+            "$ref": "#/$defs/TransformationModel"
+          }
+        }
+      }
+    },
+    "CreateTransformationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "code"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 155,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "env": {
+          "$ref": "#/$defs/TransformationEnvironment"
+        }
+      }
+    },
+    "UpdateTransformationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 155,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "env": {
+          "$ref": "#/$defs/TransformationEnvironment"
+        }
+      }
+    },
+    "DeleteTransformationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/TransformationId"
+        }
+      }
+    },
+    "TransformationAlreadyExistsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "status",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "const": "RESOURCE_ALREADY_EXISTS"
+        },
+        "status": {
+          "type": "integer",
+          "const": 409
+        },
+        "message": {
+          "type": "string",
+          "const": "Resource already exists"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "resource_type"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/TransformationId"
+            },
+            "resource_type": {
+              "type": "string",
+              "const": "transformation"
             }
           }
         }
