@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceRepository": "alencmanis/fasthook",
-  "catalogVersion": "0.9.0",
+  "catalogVersion": "0.10.0",
   "coverage": {
     "status": "partial",
     "surfaces": [
@@ -12,11 +12,12 @@
       "transformation-execution-history",
       "transformation-test",
       "transformation-capabilities",
-      "workflow-list",
-      "workflow-detail"
+      "workflow-crud",
+      "workflow-run-history",
+      "workflow-step-retry"
     ],
-    "operations": 28,
-    "schemas": 70
+    "operations": 36,
+    "schemas": 81
   },
   "consumer": "cli",
   "integration": "compiled-typed-client-no-owner-command",
@@ -24,17 +25,17 @@
     {
       "source": "generated/control-api.openapi.json",
       "target": "contracts/control-api.openapi.json",
-      "sha256": "53fef58974d03597e1f2eac9a48e3d28bb4280c19d7f2c0152ed6b3405879b91"
+      "sha256": "299910176a36cfc5a417856ad826617895134f406ec812960bb442bd15ec14a8"
     },
     {
       "source": "generated/control-api.schemas.json",
       "target": "contracts/control-api.schemas.json",
-      "sha256": "d580e49e3104d81a80d0d5df3668f216b6e623d9d6443393146842b618d2237e"
+      "sha256": "3ab68065d0fd6c6ce49bed296c93dc38a9df82b7966332d6321d19419f93e23b"
     },
     {
       "source": "src/generated/control-api-client.ts",
       "target": "src/generated/control-api-client.ts",
-      "sha256": "939bb6dc63b583a3e27639c045cf4ad5204780e1ee458f5cd9ef48a3204f5225"
+      "sha256": "3da4f9273dd5601810e9dc70091ce0f68f05068518a01e3f310fb544ef206956"
     }
   ]
 }

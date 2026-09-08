@@ -3,7 +3,7 @@
   "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
   "title": "FastHook Control API — Partial contract",
   "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
-  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-list, workflow-detail.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -2514,6 +2514,507 @@
           "items": {
             "$ref": "#/$defs/WorkflowEdge"
           }
+        }
+      }
+    },
+    "WorkflowCreateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 155
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/WorkflowStatus"
+        },
+        "steps": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 250,
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "WorkflowUpdateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 155
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/WorkflowStatus"
+        },
+        "steps": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 250,
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "DeleteWorkflowResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "deleted",
+        "source_id",
+        "source_deleted"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/WorkflowId"
+        },
+        "deleted": {
+          "type": "boolean",
+          "const": true
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_deleted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "WorkflowRunId": {
+      "type": "string",
+      "pattern": "^(?:wfr|trun)_[A-Za-z0-9_-]+$"
+    },
+    "WorkflowRunStatus": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "succeeded",
+        "failed"
+      ]
+    },
+    "WorkflowRunSummary": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "request_id",
+        "run_type",
+        "status",
+        "workflow_version",
+        "attempt_count",
+        "error_code",
+        "error_message",
+        "steps_count",
+        "succeeded_steps",
+        "failed_steps",
+        "skipped_steps",
+        "started_at",
+        "finished_at",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/WorkflowRunId"
+        },
+        "request_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run_type": {
+          "type": "string",
+          "enum": [
+            "workflow",
+            "trigger"
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/WorkflowRunStatus"
+        },
+        "workflow_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attempt_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "steps_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "succeeded_steps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_steps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped_steps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "WorkflowRunListResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "models",
+        "next_cursor"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/WorkflowRunSummary"
+          }
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ClearWorkflowRunsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow_id",
+        "deleted",
+        "retained_active"
+      ],
+      "properties": {
+        "workflow_id": {
+          "$ref": "#/$defs/WorkflowId"
+        },
+        "deleted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retained_active": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "RetryWorkflowStepRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_id"
+      ],
+      "properties": {
+        "step_id": {
+          "$ref": "#/$defs/WorkflowStepId"
+        }
+      }
+    },
+    "RetryWorkflowStepResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "workflow_id",
+        "workflow_version",
+        "status",
+        "retry_outbox_id",
+        "retry_step"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/WorkflowRunId"
+        },
+        "workflow_id": {
+          "$ref": "#/$defs/WorkflowId"
+        },
+        "workflow_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "status": {
+          "type": "string",
+          "const": "queued"
+        },
+        "retry_outbox_id": {
+          "type": "string",
+          "pattern": "^wro_[A-Za-z0-9_-]+$"
+        },
+        "retry_step": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "step_id",
+            "name"
+          ],
+          "properties": {
+            "step_id": {
+              "$ref": "#/$defs/WorkflowStepId"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "WorkflowRunDetail": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "run_type",
+        "workflow_id",
+        "source_id",
+        "request_id",
+        "status",
+        "attempt_count",
+        "error_code",
+        "error_message",
+        "version",
+        "trigger",
+        "steps",
+        "started_at",
+        "finished_at",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/WorkflowRunId"
+        },
+        "run_type": {
+          "type": "string",
+          "enum": [
+            "workflow",
+            "trigger"
+          ]
+        },
+        "workflow_id": {
+          "$ref": "#/$defs/WorkflowId"
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "request_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/WorkflowRunStatus"
+        },
+        "attempt_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "trigger": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
