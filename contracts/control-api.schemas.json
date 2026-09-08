@@ -3,7 +3,7 @@
   "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
   "title": "FastHook Control API — Partial contract",
   "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
-  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-test, transformation-capabilities, workflow-list, workflow-detail.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-list, workflow-detail.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -1193,6 +1193,279 @@
               "type": "string",
               "const": "transformation"
             }
+          }
+        }
+      }
+    },
+    "TransformationExecutionId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 155
+    },
+    "TransformationExecutionSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "team_id",
+        "event_id",
+        "created_at",
+        "updated_at",
+        "webhook_id",
+        "transformed_event_data_id",
+        "original_event_data_id",
+        "transformation_id",
+        "runtime",
+        "error_code",
+        "stats",
+        "log_level",
+        "logs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/TransformationExecutionId"
+        },
+        "team_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "webhook_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transformed_event_data_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "original_event_data_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transformation_id": {
+          "$ref": "#/$defs/TransformationId"
+        },
+        "runtime": {
+          "$ref": "#/$defs/TransformationRuntime"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stats": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "log_level": {
+          "type": "string",
+          "minLength": 1
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      }
+    },
+    "TransformationExecutionDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "event_id",
+        "original_event_data_id",
+        "transformed_event_data_id",
+        "team_id",
+        "webhook_id",
+        "transformation_id",
+        "runtime",
+        "error_code",
+        "stats",
+        "log_level",
+        "logs",
+        "created_at",
+        "updated_at",
+        "original_event_data",
+        "transformed_event_data"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/TransformationExecutionId"
+        },
+        "event_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "original_event_data_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transformed_event_data_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "team_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "webhook_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transformation_id": {
+          "$ref": "#/$defs/TransformationId"
+        },
+        "runtime": {
+          "$ref": "#/$defs/TransformationRuntime"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stats": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "log_level": {
+          "type": "string",
+          "minLength": 1
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "original_event_data": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "transformed_event_data": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "TransformationExecutionPagination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_by",
+        "dir",
+        "limit"
+      ],
+      "properties": {
+        "order_by": {
+          "type": "string",
+          "const": "created_at"
+        },
+        "dir": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 255
+        }
+      }
+    },
+    "TransformationExecutionListResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pagination",
+        "count",
+        "models"
+      ],
+      "properties": {
+        "pagination": {
+          "$ref": "#/$defs/TransformationExecutionPagination"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 255,
+          "items": {
+            "$ref": "#/$defs/TransformationExecutionSummary"
           }
         }
       }

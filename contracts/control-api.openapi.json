@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -32,6 +32,7 @@
       "filter-crud",
       "filter-test",
       "transformation-crud",
+      "transformation-execution-history",
       "transformation-test",
       "transformation-capabilities",
       "workflow-list",
@@ -47,7 +48,7 @@
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD plus stateless validate/run and capabilities endpoints, and Workflow list/detail reads",
+      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, and Workflow list/detail reads",
       "Dashboard proxy paths under /api/control",
       "CLI commands and widget runtime surfaces; synchronized artifacts do not imply owner-session feature support",
       "The hand-authored public documentation OpenAPI document"
@@ -1669,6 +1670,149 @@
         }
       }
     },
+    "/v1/transformations/{transformationId}/executions": {
+      "get": {
+        "operationId": "listTransformationExecutions",
+        "summary": "List transformation executions",
+        "description": "Returns a bounded page of execution summaries for one stored Transformation across the readable Event shards.",
+        "tags": [
+          "Transformations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "transformationId",
+            "in": "path",
+            "required": true,
+            "description": "Stored Transformation identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/TransformationId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transformation execution summaries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransformationExecutionListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transformations/{transformationId}/executions/{executionId}": {
+      "get": {
+        "operationId": "retrieveTransformationExecution",
+        "summary": "Retrieve a transformation execution",
+        "description": "Returns one execution with its stored original and transformed Event-data snapshots.",
+        "tags": [
+          "Transformations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "transformationId",
+            "in": "path",
+            "required": true,
+            "description": "Stored Transformation identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/TransformationId"
+            }
+          },
+          {
+            "name": "executionId",
+            "in": "path",
+            "required": true,
+            "description": "Transformation execution identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/TransformationExecutionId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transformation execution detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransformationExecutionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Transformation execution not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/transformations/capabilities": {
       "get": {
         "operationId": "getTransformationCapabilities",
@@ -3224,6 +3368,279 @@
                 "type": "string",
                 "const": "transformation"
               }
+            }
+          }
+        }
+      },
+      "TransformationExecutionId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 155
+      },
+      "TransformationExecutionSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "event_id",
+          "created_at",
+          "updated_at",
+          "webhook_id",
+          "transformed_event_data_id",
+          "original_event_data_id",
+          "transformation_id",
+          "runtime",
+          "error_code",
+          "stats",
+          "log_level",
+          "logs"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/TransformationExecutionId"
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "webhook_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "transformed_event_data_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "original_event_data_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "transformation_id": {
+            "$ref": "#/components/schemas/TransformationId"
+          },
+          "runtime": {
+            "$ref": "#/components/schemas/TransformationRuntime"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stats": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "log_level": {
+            "type": "string",
+            "minLength": 1
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        }
+      },
+      "TransformationExecutionDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "event_id",
+          "original_event_data_id",
+          "transformed_event_data_id",
+          "team_id",
+          "webhook_id",
+          "transformation_id",
+          "runtime",
+          "error_code",
+          "stats",
+          "log_level",
+          "logs",
+          "created_at",
+          "updated_at",
+          "original_event_data",
+          "transformed_event_data"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/TransformationExecutionId"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "original_event_data_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "transformed_event_data_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "webhook_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "transformation_id": {
+            "$ref": "#/components/schemas/TransformationId"
+          },
+          "runtime": {
+            "$ref": "#/components/schemas/TransformationRuntime"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stats": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "log_level": {
+            "type": "string",
+            "minLength": 1
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "original_event_data": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "transformed_event_data": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "TransformationExecutionPagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "order_by",
+          "dir",
+          "limit"
+        ],
+        "properties": {
+          "order_by": {
+            "type": "string",
+            "const": "created_at"
+          },
+          "dir": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 255
+          }
+        }
+      },
+      "TransformationExecutionListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pagination",
+          "count",
+          "models"
+        ],
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/TransformationExecutionPagination"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "models": {
+            "type": "array",
+            "maxItems": 255,
+            "items": {
+              "$ref": "#/components/schemas/TransformationExecutionSummary"
             }
           }
         }
