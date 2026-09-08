@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -32,6 +32,7 @@
       "filter-crud",
       "filter-test",
       "transformation-test",
+      "transformation-capabilities",
       "workflow-list",
       "workflow-detail"
     ],
@@ -45,7 +46,7 @@
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys, stored Filter CRUD/test, the stateless Transformation validate/run endpoints, and Workflow list/detail reads",
+      "All Control API resources other than project-api-keys, stored Filter CRUD/test, the stateless Transformation validate/run and capabilities endpoints, and Workflow list/detail reads",
       "Dashboard proxy paths under /api/control",
       "CLI commands and widget runtime surfaces; synchronized artifacts do not imply owner-session feature support",
       "The hand-authored public documentation OpenAPI document"
@@ -1229,6 +1230,59 @@
           },
           "403": {
             "description": "Execute permission or the exact project-key grant is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transformations/capabilities": {
+      "get": {
+        "operationId": "getTransformationCapabilities",
+        "summary": "Get transformation capabilities",
+        "description": "Returns the authoritative FastHook DSL runtime limits and supported globals, namespaces, methods, properties, and contextual members.",
+        "tags": [
+          "Transformations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transformation runtime capabilities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransformationCapabilitiesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership or site-admin access is required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2546,6 +2600,212 @@
           }
         }
       },
+      "TransformationDslLimits": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "codeLength",
+          "astNodes",
+          "executionSteps",
+          "loopIterations",
+          "collectionOperations",
+          "callDepth",
+          "consoleLines",
+          "consoleLineLength",
+          "outputBytes",
+          "valueDepth",
+          "inputBytes",
+          "inputNodes",
+          "envBytes",
+          "envEntries",
+          "regexpPatternLength",
+          "regexpInputLength",
+          "regexpMatches",
+          "regexpCaptures",
+          "regexpQuantifiers",
+          "regexpRepetition"
+        ],
+        "properties": {
+          "codeLength": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "astNodes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "executionSteps": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "loopIterations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "collectionOperations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "callDepth": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "consoleLines": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "consoleLineLength": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outputBytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "valueDepth": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "inputBytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "inputNodes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "envBytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "envEntries": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "regexpPatternLength": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "regexpInputLength": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "regexpMatches": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "regexpCaptures": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "regexpQuantifiers": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "regexpRepetition": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "TransformationDslCapabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "globals",
+          "namespaces",
+          "instanceMethods",
+          "instanceProperties",
+          "contextualMembers",
+          "blockedProperties"
+        ],
+        "properties": {
+          "globals": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "namespaces": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "members"
+              ],
+              "properties": {
+                "members": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "instanceMethods": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "instanceProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "contextualMembers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "blockedProperties": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TransformationCapabilitiesResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "runtime",
+          "limits",
+          "capabilities"
+        ],
+        "properties": {
+          "runtime": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limits": {
+            "$ref": "#/components/schemas/TransformationDslLimits"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/TransformationDslCapabilities"
+          }
+        }
+      },
       "TransformationValidateResponse": {
         "type": "object",
         "additionalProperties": false,
@@ -2572,16 +2832,10 @@
             "type": "boolean"
           },
           "limits": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
-            }
+            "$ref": "#/components/schemas/TransformationDslLimits"
           },
           "capabilities": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
-            }
+            "$ref": "#/components/schemas/TransformationDslCapabilities"
           }
         }
       },

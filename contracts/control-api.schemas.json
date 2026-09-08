@@ -3,7 +3,7 @@
   "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
   "title": "FastHook Control API — Partial contract",
   "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
-  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-test, workflow-list, workflow-detail.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-test, transformation-capabilities, workflow-list, workflow-detail.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -997,6 +997,212 @@
         }
       }
     },
+    "TransformationDslLimits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "codeLength",
+        "astNodes",
+        "executionSteps",
+        "loopIterations",
+        "collectionOperations",
+        "callDepth",
+        "consoleLines",
+        "consoleLineLength",
+        "outputBytes",
+        "valueDepth",
+        "inputBytes",
+        "inputNodes",
+        "envBytes",
+        "envEntries",
+        "regexpPatternLength",
+        "regexpInputLength",
+        "regexpMatches",
+        "regexpCaptures",
+        "regexpQuantifiers",
+        "regexpRepetition"
+      ],
+      "properties": {
+        "codeLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "astNodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "executionSteps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "loopIterations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "collectionOperations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "callDepth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "consoleLines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "consoleLineLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valueDepth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inputBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inputNodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "envBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "envEntries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "regexpPatternLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "regexpInputLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "regexpMatches": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "regexpCaptures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "regexpQuantifiers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "regexpRepetition": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "TransformationDslCapabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "globals",
+        "namespaces",
+        "instanceMethods",
+        "instanceProperties",
+        "contextualMembers",
+        "blockedProperties"
+      ],
+      "properties": {
+        "globals": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "namespaces": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "members"
+            ],
+            "properties": {
+              "members": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "instanceMethods": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "instanceProperties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "contextualMembers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "blockedProperties": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "TransformationCapabilitiesResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime",
+        "limits",
+        "capabilities"
+      ],
+      "properties": {
+        "runtime": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limits": {
+          "$ref": "#/$defs/TransformationDslLimits"
+        },
+        "capabilities": {
+          "$ref": "#/$defs/TransformationDslCapabilities"
+        }
+      }
+    },
     "TransformationValidateResponse": {
       "type": "object",
       "additionalProperties": false,
@@ -1023,16 +1229,10 @@
           "type": "boolean"
         },
         "limits": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/JsonValue"
-          }
+          "$ref": "#/$defs/TransformationDslLimits"
         },
         "capabilities": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/JsonValue"
-          }
+          "$ref": "#/$defs/TransformationDslCapabilities"
         }
       }
     },
