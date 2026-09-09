@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -62,6 +62,9 @@
     },
     {
       "name": "Event bulk operations"
+    },
+    {
+      "name": "Source operations"
     }
   ],
   "x-fasthook-contract-coverage": {
@@ -88,7 +91,8 @@
       "resource-metrics",
       "request-reads",
       "event-attempt-reads",
-      "request-event-mutations"
+      "request-event-mutations",
+      "source-operations"
     ],
     "sourceFiles": [
       "src/control-api.ts",
@@ -115,7 +119,7 @@
     ],
     "excluded": [
       "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status and dynamic options, Connection CRUD/status/pause/latest-input, Source CRUD/status, Destination CRUD/status, Provider Account operations, provider catalogs, resource metrics, Request reads, and Event/Attempt reads",
-      "Public share-token retrieval; Source channel operations; delivery activity; and remaining manual execution/retry endpoints",
+      "Public share-token retrieval; Request Fixtures; Workflow Template instantiation and Workflow activity; and remaining internal-only surfaces",
       "The legacy /v1/destinations/metrics alias and legacy POST enable/disable aliases, whose legacy response DTO differs from the canonical Destination projection",
       "Legacy google-oauth Provider Account aliases, direct-handler-test-only OAuth paths, OAuth state/credential storage internals, and provider subscription/channel cleanup internals",
       "Dashboard proxy paths under /api/control",
@@ -9777,6 +9781,916 @@
           }
         }
       }
+    },
+    "/v1/sources/channel-alerts": {
+      "get": {
+        "operationId": "listSourceChannelAlerts",
+        "summary": "List Source channel alerts",
+        "description": "Lists bounded active, resolved, or all provider Source channel alerts newest first.",
+        "tags": [
+          "Source operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Alert state; defaults to active.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceChannelAlertStatus"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum results; defaults to 50.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceOperationalLimit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source channel alerts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceChannelAlertListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-member session access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/channel-metrics": {
+      "get": {
+        "operationId": "listSourceChannelMetrics",
+        "summary": "List Source channel metrics",
+        "description": "Returns daily aggregated channel lifecycle, notification, fallback, and alert metrics.",
+        "tags": [
+          "Source operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Lookback days; defaults to 14.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceChannelMetricDays"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source channel metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceChannelMetricsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-member session access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/channels": {
+      "get": {
+        "operationId": "listSourceChannels",
+        "summary": "List instant Source channels",
+        "description": "Lists up to 250 instant-delivery provider Sources with their channel health summaries.",
+        "tags": [
+          "Source operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Optional channel-health filter.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceChannelStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source channels",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceChannelListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-member session access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/channels/bulk": {
+      "post": {
+        "operationId": "bulkUpdateSourceChannels",
+        "summary": "Bulk update Source channels",
+        "description": "Retries or changes delivery mode for up to 100 selected provider Sources, sequentially and without concurrent fan-in.",
+        "tags": [
+          "Source operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkSourceChannelsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bulk Source channel result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkSourceChannelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid source selection or action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team owner or site administrator access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/channel-settings": {
+      "get": {
+        "operationId": "getSourceChannelSettings",
+        "summary": "Get Source channel alert settings",
+        "description": "Returns team-level email and Slack notification settings without returning the Slack webhook credential.",
+        "tags": [
+          "Source operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source channel settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceChannelSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-member session access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateSourceChannelSettings",
+        "summary": "Update Source channel alert settings",
+        "description": "Updates team-level alert delivery settings; stored Slack credentials are encrypted and never returned.",
+        "tags": [
+          "Source operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSourceChannelSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated Source channel settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceChannelSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Slack webhook or settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team owner or site administrator access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/{sourceId}/run": {
+      "post": {
+        "operationId": "runSourceNow",
+        "summary": "Run a polling Source now",
+        "description": "Creates a durable manual Source run and queues it on the Source activity queue.",
+        "tags": [
+          "Source operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_execute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Source run queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceRunQueuedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or the exact control:execute grant is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Provider Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Source type or state does not permit this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Source runner is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/{sourceId}/channel-retry": {
+      "post": {
+        "operationId": "retrySourceChannel",
+        "summary": "Retry an instant Source channel",
+        "description": "Prioritizes channel reprovisioning for an enabled instant Source with a connected provider account.",
+        "tags": [
+          "Source operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_execute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Source channel retry requested",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceChannelRetryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or the exact control:execute grant is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Provider Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Source type or state does not permit this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/{sourceId}/channel-events": {
+      "get": {
+        "operationId": "listSourceChannelEvents",
+        "summary": "List Source channel diagnostics",
+        "description": "Returns bounded channel lifecycle events, current channel records, and alert-delivery history for one provider Source.",
+        "tags": [
+          "Source operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum lifecycle events; defaults to 100.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceChannelEventLimit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source channel diagnostics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceChannelEventsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-member session access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Provider Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/{sourceId}/delivery": {
+      "patch": {
+        "operationId": "updateSourceDelivery",
+        "summary": "Update Source delivery mode",
+        "description": "Switches a supported provider Source between instant and polling delivery and returns the canonical Source projection.",
+        "tags": [
+          "Source operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSourceDeliveryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated Source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid delivery mode",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team owner or site administrator access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Provider Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Source type or state does not permit this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/{sourceId}/runs": {
+      "get": {
+        "operationId": "listSourceRuns",
+        "summary": "List Source runs",
+        "description": "Lists bounded polling Source runs with cursor transitions and item records.",
+        "tags": [
+          "Source operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum runs; defaults to 25.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceOperationalLimit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source runs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceActivityListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-member session access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Provider Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/{sourceId}/activity": {
+      "get": {
+        "operationId": "listSourceActivity",
+        "summary": "List provider Source activity",
+        "description": "Lists bounded provider-webhook activity normalized to the common Source-run timeline.",
+        "tags": [
+          "Source operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum activity records; defaults to 25.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceOperationalLimit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Provider Source activity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceActivityListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-member session access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Provider Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -15966,6 +16880,538 @@
           },
           "channel": {
             "$ref": "#/components/schemas/JsonValue"
+          }
+        }
+      },
+      "SourceChannelAlertStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "resolved",
+          "all"
+        ]
+      },
+      "SourceOperationalLimit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100
+      },
+      "SourceChannelEventLimit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 200
+      },
+      "SourceChannelMetricDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 90
+      },
+      "SourceChannelStatus": {
+        "type": "string",
+        "enum": [
+          "connecting",
+          "active",
+          "error",
+          "expiring",
+          "fallback"
+        ]
+      },
+      "SourceChannelSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source_id",
+          "name",
+          "provider_key",
+          "definition_key",
+          "status",
+          "delivery_mode",
+          "channel"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "provider_key": {
+            "type": "string"
+          },
+          "definition_key": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SourceStatus"
+          },
+          "delivery_mode": {
+            "type": "string",
+            "const": "instant"
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "SourceChannelListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "models"
+        ],
+        "properties": {
+          "models": {
+            "type": "array",
+            "maxItems": 250,
+            "items": {
+              "$ref": "#/components/schemas/SourceChannelSummary"
+            }
+          }
+        }
+      },
+      "SourceChannelAlertModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source_id",
+          "source_name",
+          "provider_key",
+          "definition_key",
+          "code",
+          "status",
+          "message",
+          "occurrences",
+          "first_seen_at",
+          "last_seen_at",
+          "resolved_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "source_name": {
+            "type": "string"
+          },
+          "provider_key": {
+            "type": "string"
+          },
+          "definition_key": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "resolved"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "occurrences": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "first_seen_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_seen_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "SourceChannelAlertListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "models"
+        ],
+        "properties": {
+          "models": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/SourceChannelAlertModel"
+            }
+          }
+        }
+      },
+      "SourceChannelMetricPoint": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_date",
+          "metric",
+          "value"
+        ],
+        "properties": {
+          "metric_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      },
+      "SourceChannelMetricsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "series"
+        ],
+        "properties": {
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceChannelMetricPoint"
+            }
+          }
+        }
+      },
+      "SourceChannelSettings": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "email_enabled",
+          "slack_enabled",
+          "slack_configured",
+          "cooldown_minutes",
+          "silence_alert_hours",
+          "updated_at"
+        ],
+        "properties": {
+          "email_enabled": {
+            "type": "boolean"
+          },
+          "slack_enabled": {
+            "type": "boolean"
+          },
+          "slack_configured": {
+            "type": "boolean"
+          },
+          "cooldown_minutes": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 10080
+          },
+          "silence_alert_hours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 720
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "UpdateSourceChannelSettingsRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email_enabled": {
+            "type": "boolean"
+          },
+          "slack_enabled": {
+            "type": "boolean"
+          },
+          "slack_webhook_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uri"
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
+            ]
+          },
+          "cooldown_minutes": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 10080
+          },
+          "silence_alert_hours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 720
+          }
+        }
+      },
+      "BulkSourceChannelsRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_ids",
+          "action"
+        ],
+        "properties": {
+          "source_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "retry",
+              "use_polling",
+              "use_instant"
+            ]
+          },
+          "schedule": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "auto_fallback": {
+            "type": "boolean"
+          },
+          "max_failures": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "restore_after_minutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          }
+        }
+      },
+      "BulkSourceChannelError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "error"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "BulkSourceChannelsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "updated",
+          "errors"
+        ],
+        "properties": {
+          "updated": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkSourceChannelError"
+            }
+          }
+        }
+      },
+      "SourceRunQueuedResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source_id",
+          "status",
+          "reason",
+          "scheduled_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^trun_[a-f0-9]{32}$"
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "status": {
+            "type": "string",
+            "const": "scheduled"
+          },
+          "reason": {
+            "type": "string",
+            "const": "manual"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SourceChannelRetryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "status",
+          "retry_requested_at"
+        ],
+        "properties": {
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "status": {
+            "type": "string",
+            "const": "connecting"
+          },
+          "retry_requested_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpdateSourceDeliveryRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "delivery_mode"
+        ],
+        "properties": {
+          "delivery_mode": {
+            "type": "string",
+            "enum": [
+              "instant",
+              "polling"
+            ]
+          },
+          "schedule": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "auto_fallback": {
+            "type": "boolean"
+          },
+          "max_failures": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "restore_after_minutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          }
+        }
+      },
+      "SourceChannelEventsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "events",
+          "channels",
+          "deliveries"
+        ],
+        "properties": {
+          "events": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              }
+            }
+          },
+          "channels": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              }
+            }
+          },
+          "deliveries": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              }
+            }
+          }
+        }
+      },
+      "SourceActivityListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "models"
+        ],
+        "properties": {
+          "models": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              }
+            }
           }
         }
       },
