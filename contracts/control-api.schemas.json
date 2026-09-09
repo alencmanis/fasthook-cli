@@ -3,7 +3,7 @@
   "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
   "title": "FastHook Control API — Partial contract",
   "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
-  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry, action-crud, connection-crud, connection-latest-input, source-crud, destination-crud, provider-accounts, provider-catalogs, action-options.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry, action-crud, connection-crud, connection-latest-input, source-crud, destination-crud, provider-accounts, provider-catalogs, action-options, resource-metrics.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -916,6 +916,465 @@
     "TransformationId": {
       "type": "string",
       "pattern": "^trs_[A-Za-z0-9_-]+$"
+    },
+    "MetricsTimeExpression": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ISO 8601 timestamp or relative expression such as now-24h."
+    },
+    "MetricsGranularity": {
+      "type": "string",
+      "enum": [
+        "1s",
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "1h"
+      ]
+    },
+    "MetricsMeasures": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One or more comma-separated metric names. The measures query parameter may also be repeated."
+    },
+    "MetricsResourceIds": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One or more comma-separated resource identifiers. The id query parameter may also be repeated."
+    },
+    "RequestMetricStatus": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "rejected"
+      ]
+    },
+    "EventMetricStatus": {
+      "type": "string",
+      "enum": [
+        "SCHEDULED",
+        "QUEUED",
+        "HOLD",
+        "SUCCESSFUL",
+        "FAILED",
+        "CANCELLED"
+      ]
+    },
+    "MetricsDateRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "MetricsSeriesPoint": {
+      "type": "object",
+      "required": [
+        "timestamp"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accepted_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delivered_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queued_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "processing_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hold_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ignored_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "RequestMetricsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "date_range",
+        "granularity",
+        "series",
+        "partial",
+        "unavailable_shard_count"
+      ],
+      "properties": {
+        "date_range": {
+          "$ref": "#/$defs/MetricsDateRange"
+        },
+        "granularity": {
+          "$ref": "#/$defs/MetricsGranularity"
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MetricsSeriesPoint"
+          }
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "unavailable_shard_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "EventMetricsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "date_range",
+        "granularity",
+        "series"
+      ],
+      "properties": {
+        "date_range": {
+          "$ref": "#/$defs/MetricsDateRange"
+        },
+        "granularity": {
+          "$ref": "#/$defs/MetricsGranularity"
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MetricsSeriesPoint"
+          }
+        }
+      }
+    },
+    "SourceMetricModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source_id",
+        "requests_24h_count",
+        "requests_24h_total_count",
+        "requests_24h_accepted_count",
+        "requests_24h_rejected_count",
+        "requests_24h_accepted_bins",
+        "requests_24h_rejected_bins",
+        "connections_count"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/SourceId"
+        },
+        "source_id": {
+          "$ref": "#/$defs/SourceId"
+        },
+        "requests_24h_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "requests_24h_total_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "requests_24h_accepted_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "requests_24h_rejected_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "requests_24h_accepted_bins": {
+          "$ref": "#/$defs/TransformationMetricBins"
+        },
+        "requests_24h_rejected_bins": {
+          "$ref": "#/$defs/TransformationMetricBins"
+        },
+        "connections_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "SourceMetricsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "models"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceMetricModel"
+          }
+        }
+      }
+    },
+    "ConnectionMetricModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "connection_id",
+        "webhook_id",
+        "events_24h_count",
+        "events_24h_successful_count",
+        "events_24h_failed_count",
+        "events_24h_pending_count",
+        "events_24h_cancelled_count",
+        "events_24h_bins",
+        "events_24h_successful_bins",
+        "events_24h_failed_bins",
+        "events_24h_pending_bins",
+        "events_24h_cancelled_bins"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ConnectionId"
+        },
+        "connection_id": {
+          "$ref": "#/$defs/ConnectionId"
+        },
+        "webhook_id": {
+          "$ref": "#/$defs/ConnectionId"
+        },
+        "events_24h_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events_24h_successful_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events_24h_failed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events_24h_pending_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events_24h_cancelled_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events_24h_bins": {
+          "$ref": "#/$defs/TransformationMetricBins"
+        },
+        "events_24h_successful_bins": {
+          "$ref": "#/$defs/TransformationMetricBins"
+        },
+        "events_24h_failed_bins": {
+          "$ref": "#/$defs/TransformationMetricBins"
+        },
+        "events_24h_pending_bins": {
+          "$ref": "#/$defs/TransformationMetricBins"
+        },
+        "events_24h_cancelled_bins": {
+          "$ref": "#/$defs/TransformationMetricBins"
+        }
+      }
+    },
+    "ConnectionMetricsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "models"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConnectionMetricModel"
+          }
+        }
+      }
+    },
+    "DestinationMetricModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "destination_id",
+        "attempts_24h_count",
+        "attempts_24h_bins"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/DestinationId"
+        },
+        "destination_id": {
+          "$ref": "#/$defs/DestinationId"
+        },
+        "attempts_24h_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attempts_24h_bins": {
+          "$ref": "#/$defs/TransformationMetricBins"
+        }
+      }
+    },
+    "DestinationMetricsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "models",
+        "partial",
+        "source",
+        "failed_destination_ids"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DestinationMetricModel"
+          }
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "durable_objects",
+            "cache",
+            "stale_cache"
+          ]
+        },
+        "failed_destination_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DestinationId"
+          }
+        }
+      }
+    },
+    "TransformationMetricModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "transformation_id",
+        "executions_24h_count",
+        "executions_24h_successful_count",
+        "executions_24h_failed_count",
+        "executions_24h_successful_bins",
+        "executions_24h_failed_bins",
+        "error_code_counts",
+        "connections_count"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/TransformationId"
+        },
+        "transformation_id": {
+          "$ref": "#/$defs/TransformationId"
+        },
+        "executions_24h_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "executions_24h_successful_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "executions_24h_failed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "executions_24h_successful_bins": {
+          "$ref": "#/$defs/TransformationMetricBins"
+        },
+        "executions_24h_failed_bins": {
+          "$ref": "#/$defs/TransformationMetricBins"
+        },
+        "error_code_counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "connections_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "TransformationMetricsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "models"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TransformationMetricModel"
+          }
+        }
+      }
     },
     "TransformationRuntime": {
       "type": "string",

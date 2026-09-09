@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -44,6 +44,9 @@
     },
     {
       "name": "Action options"
+    },
+    {
+      "name": "Metrics"
     }
   ],
   "x-fasthook-contract-coverage": {
@@ -66,7 +69,8 @@
       "destination-crud",
       "provider-accounts",
       "provider-catalogs",
-      "action-options"
+      "action-options",
+      "resource-metrics"
     ],
     "sourceFiles": [
       "src/control-api.ts",
@@ -78,6 +82,7 @@
       "src/control-api-destination-policy.ts",
       "src/control-api-filters.ts",
       "src/control-api-provider-accounts.ts",
+      "src/control-api-requests-events.ts",
       "src/control-api-resources.ts",
       "src/control-api-source-resources.ts",
       "src/control-api-triggers.ts",
@@ -88,9 +93,9 @@
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status and dynamic options, Connection CRUD/status/pause/latest-input, Source CRUD/status, Destination CRUD/status, Provider Account operations, and provider catalogs",
+      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status and dynamic options, Connection CRUD/status/pause/latest-input, Source CRUD/status, Destination CRUD/status, Provider Account operations, provider catalogs, and resource metrics",
       "Source channel operations, delivery inspection, run history, activity, and manual execution/retry endpoints",
-      "Destination metrics and legacy POST enable/disable aliases, whose legacy response DTO differs from the canonical Destination projection",
+      "The legacy /v1/destinations/metrics alias and legacy POST enable/disable aliases, whose legacy response DTO differs from the canonical Destination projection",
       "Legacy google-oauth Provider Account aliases, direct-handler-test-only OAuth paths, OAuth state/credential storage internals, and provider subscription/channel cleanup internals",
       "Dashboard proxy paths under /api/control",
       "CLI commands and widget runtime surfaces; synchronized artifacts do not imply owner-session feature support",
@@ -7052,6 +7057,568 @@
           }
         }
       }
+    },
+    "/v1/metrics/requests": {
+      "get": {
+        "operationId": "getRequestMetrics",
+        "summary": "Query request metrics",
+        "description": "Returns a zero-filled time series for the requested request measures. Measures supports count, accepted_count, and rejected_count.",
+        "tags": [
+          "Metrics"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "measures",
+            "in": "query",
+            "required": true,
+            "description": "Required comma-separated measures: count, accepted_count, rejected_count.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsMeasures"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Range start; defaults to the configured metrics window.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsTimeExpression"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Range end; defaults to now.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsTimeExpression"
+            }
+          },
+          {
+            "name": "granularity",
+            "in": "query",
+            "description": "Time-series bucket size.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsGranularity"
+            }
+          },
+          {
+            "name": "source_id",
+            "in": "query",
+            "description": "Limit metrics to one Source.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          },
+          {
+            "name": "batch_operation_id",
+            "in": "query",
+            "description": "Limit metrics to one bulk operation.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Limit metrics by request acceptance status.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestMetricStatus"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search request identifiers and indexed metadata.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request metrics time series",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestMetricsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid range, granularity, measures, or status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Metrics query failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics/events": {
+      "get": {
+        "operationId": "getEventMetrics",
+        "summary": "Query event metrics",
+        "description": "Returns a zero-filled event time series. Supported measures are count, delivered_count, failed_count, queued_count, processing_count, hold_count, and ignored_count.",
+        "tags": [
+          "Metrics"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "measures",
+            "in": "query",
+            "required": true,
+            "description": "Required comma-separated event measures.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsMeasures"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Range start; defaults to the configured metrics window.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsTimeExpression"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Range end; defaults to now.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsTimeExpression"
+            }
+          },
+          {
+            "name": "granularity",
+            "in": "query",
+            "description": "Time-series bucket size.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsGranularity"
+            }
+          },
+          {
+            "name": "source_id",
+            "in": "query",
+            "description": "Limit metrics to one Source.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          },
+          {
+            "name": "connection_id",
+            "in": "query",
+            "description": "Comma-separated Connection identifiers.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          },
+          {
+            "name": "destination_id",
+            "in": "query",
+            "description": "Comma-separated Destination identifiers.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          },
+          {
+            "name": "batch_operation_id",
+            "in": "query",
+            "description": "Limit metrics to one bulk operation.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          },
+          {
+            "name": "batch_operation_scope",
+            "in": "query",
+            "description": "Bulk operation target scope.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Limit metrics by event status.",
+            "schema": {
+              "$ref": "#/components/schemas/EventMetricStatus"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search event identifiers and indexed metadata.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event metrics time series",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventMetricsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid range, granularity, measures, or status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Metrics query failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics/sources": {
+      "get": {
+        "operationId": "listSourceMetrics",
+        "summary": "List Source metrics",
+        "description": "Returns six-bin 24-hour request metrics and Connection counts for the requested Source IDs.",
+        "tags": [
+          "Metrics"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Comma-separated Source IDs; may be repeated. Aliases source_id, source_ids, and ids are also accepted.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source metric models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceMetricsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics/connections": {
+      "get": {
+        "operationId": "listConnectionMetrics",
+        "summary": "List Connection metrics",
+        "description": "Returns six-bin 24-hour Event metrics for the requested Connection IDs.",
+        "tags": [
+          "Metrics"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Comma-separated Connection IDs; may be repeated. Connection and webhook aliases are also accepted.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection metric models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionMetricsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics/destinations": {
+      "get": {
+        "operationId": "listDestinationMetrics",
+        "summary": "List Destination metrics",
+        "description": "Returns six-bin 24-hour Attempt metrics plus partial-result provenance for the requested Destination IDs.",
+        "tags": [
+          "Metrics"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Comma-separated Destination IDs; may be repeated. Aliases destination_id, destination_ids, and ids are also accepted.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Destination metric models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DestinationMetricsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics/transformations": {
+      "get": {
+        "operationId": "listTransformationMetrics",
+        "summary": "List Transformation metrics",
+        "description": "Returns six-bin 24-hour execution metrics, error counts, and Connection counts for the requested Transformation IDs.",
+        "tags": [
+          "Metrics"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Comma-separated Transformation IDs; may be repeated. Transformation aliases are also accepted.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transformation metric models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransformationMetricsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7991,6 +8558,465 @@
       "TransformationId": {
         "type": "string",
         "pattern": "^trs_[A-Za-z0-9_-]+$"
+      },
+      "MetricsTimeExpression": {
+        "type": "string",
+        "minLength": 1,
+        "description": "ISO 8601 timestamp or relative expression such as now-24h."
+      },
+      "MetricsGranularity": {
+        "type": "string",
+        "enum": [
+          "1s",
+          "5s",
+          "10s",
+          "30s",
+          "1m",
+          "5m",
+          "15m",
+          "1h"
+        ]
+      },
+      "MetricsMeasures": {
+        "type": "string",
+        "minLength": 1,
+        "description": "One or more comma-separated metric names. The measures query parameter may also be repeated."
+      },
+      "MetricsResourceIds": {
+        "type": "string",
+        "minLength": 1,
+        "description": "One or more comma-separated resource identifiers. The id query parameter may also be repeated."
+      },
+      "RequestMetricStatus": {
+        "type": "string",
+        "enum": [
+          "accepted",
+          "rejected"
+        ]
+      },
+      "EventMetricStatus": {
+        "type": "string",
+        "enum": [
+          "SCHEDULED",
+          "QUEUED",
+          "HOLD",
+          "SUCCESSFUL",
+          "FAILED",
+          "CANCELLED"
+        ]
+      },
+      "MetricsDateRange": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "start",
+          "end"
+        ],
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MetricsSeriesPoint": {
+        "type": "object",
+        "required": [
+          "timestamp"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "accepted_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rejected_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "delivered_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "queued_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "processing_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "hold_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ignored_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "RequestMetricsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date_range",
+          "granularity",
+          "series",
+          "partial",
+          "unavailable_shard_count"
+        ],
+        "properties": {
+          "date_range": {
+            "$ref": "#/components/schemas/MetricsDateRange"
+          },
+          "granularity": {
+            "$ref": "#/components/schemas/MetricsGranularity"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetricsSeriesPoint"
+            }
+          },
+          "partial": {
+            "type": "boolean"
+          },
+          "unavailable_shard_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "EventMetricsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date_range",
+          "granularity",
+          "series"
+        ],
+        "properties": {
+          "date_range": {
+            "$ref": "#/components/schemas/MetricsDateRange"
+          },
+          "granularity": {
+            "$ref": "#/components/schemas/MetricsGranularity"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetricsSeriesPoint"
+            }
+          }
+        }
+      },
+      "SourceMetricModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source_id",
+          "requests_24h_count",
+          "requests_24h_total_count",
+          "requests_24h_accepted_count",
+          "requests_24h_rejected_count",
+          "requests_24h_accepted_bins",
+          "requests_24h_rejected_bins",
+          "connections_count"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "requests_24h_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "requests_24h_total_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "requests_24h_accepted_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "requests_24h_rejected_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "requests_24h_accepted_bins": {
+            "$ref": "#/components/schemas/TransformationMetricBins"
+          },
+          "requests_24h_rejected_bins": {
+            "$ref": "#/components/schemas/TransformationMetricBins"
+          },
+          "connections_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "SourceMetricsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "count",
+          "models"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceMetricModel"
+            }
+          }
+        }
+      },
+      "ConnectionMetricModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "connection_id",
+          "webhook_id",
+          "events_24h_count",
+          "events_24h_successful_count",
+          "events_24h_failed_count",
+          "events_24h_pending_count",
+          "events_24h_cancelled_count",
+          "events_24h_bins",
+          "events_24h_successful_bins",
+          "events_24h_failed_bins",
+          "events_24h_pending_bins",
+          "events_24h_cancelled_bins"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "connection_id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "webhook_id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "events_24h_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "events_24h_successful_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "events_24h_failed_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "events_24h_pending_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "events_24h_cancelled_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "events_24h_bins": {
+            "$ref": "#/components/schemas/TransformationMetricBins"
+          },
+          "events_24h_successful_bins": {
+            "$ref": "#/components/schemas/TransformationMetricBins"
+          },
+          "events_24h_failed_bins": {
+            "$ref": "#/components/schemas/TransformationMetricBins"
+          },
+          "events_24h_pending_bins": {
+            "$ref": "#/components/schemas/TransformationMetricBins"
+          },
+          "events_24h_cancelled_bins": {
+            "$ref": "#/components/schemas/TransformationMetricBins"
+          }
+        }
+      },
+      "ConnectionMetricsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "count",
+          "models"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectionMetricModel"
+            }
+          }
+        }
+      },
+      "DestinationMetricModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "destination_id",
+          "attempts_24h_count",
+          "attempts_24h_bins"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/DestinationId"
+          },
+          "destination_id": {
+            "$ref": "#/components/schemas/DestinationId"
+          },
+          "attempts_24h_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "attempts_24h_bins": {
+            "$ref": "#/components/schemas/TransformationMetricBins"
+          }
+        }
+      },
+      "DestinationMetricsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "count",
+          "models",
+          "partial",
+          "source",
+          "failed_destination_ids"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DestinationMetricModel"
+            }
+          },
+          "partial": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "durable_objects",
+              "cache",
+              "stale_cache"
+            ]
+          },
+          "failed_destination_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DestinationId"
+            }
+          }
+        }
+      },
+      "TransformationMetricModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "transformation_id",
+          "executions_24h_count",
+          "executions_24h_successful_count",
+          "executions_24h_failed_count",
+          "executions_24h_successful_bins",
+          "executions_24h_failed_bins",
+          "error_code_counts",
+          "connections_count"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/TransformationId"
+          },
+          "transformation_id": {
+            "$ref": "#/components/schemas/TransformationId"
+          },
+          "executions_24h_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "executions_24h_successful_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "executions_24h_failed_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "executions_24h_successful_bins": {
+            "$ref": "#/components/schemas/TransformationMetricBins"
+          },
+          "executions_24h_failed_bins": {
+            "$ref": "#/components/schemas/TransformationMetricBins"
+          },
+          "error_code_counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "connections_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "TransformationMetricsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "count",
+          "models"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransformationMetricModel"
+            }
+          }
+        }
       },
       "TransformationRuntime": {
         "type": "string",
