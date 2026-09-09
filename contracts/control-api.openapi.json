@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.11.0",
+    "version": "0.12.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -26,6 +26,9 @@
     },
     {
       "name": "Actions"
+    },
+    {
+      "name": "Connections"
     }
   ],
   "x-fasthook-contract-coverage": {
@@ -41,20 +44,23 @@
       "workflow-crud",
       "workflow-run-history",
       "workflow-step-retry",
-      "action-crud"
+      "action-crud",
+      "connection-crud",
+      "connection-latest-input"
     ],
     "sourceFiles": [
       "src/control-api.ts",
       "src/control-api-authorization.ts",
       "src/control-api-actions.ts",
       "src/control-api-filters.ts",
+      "src/control-api-resources.ts",
       "src/control-api-transformations.ts",
       "src/control-api-workflows.ts",
       "src/filter-rule.ts",
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, and Action CRUD/status operations",
+      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status, and Connection CRUD/status/pause/latest-input operations",
       "Dashboard proxy paths under /api/control",
       "CLI commands and widget runtime surfaces; synchronized artifacts do not imply owner-session feature support",
       "The hand-authored public documentation OpenAPI document"
@@ -3716,6 +3722,1013 @@
           }
         }
       }
+    },
+    "/v1/connections": {
+      "get": {
+        "operationId": "listConnections",
+        "summary": "List connections",
+        "description": "Returns a bounded page of Connections with canonical runtime rules and embedded secret-free Source and destination projections. Generated clients use server query defaults.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createConnection",
+        "summary": "Create a connection",
+        "description": "Creates a Source-to-destination Connection, canonicalizes rules, updates rule indexes, and publishes its cache entry.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created Connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Connection or rule configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "upsertConnection",
+        "summary": "Upsert a connection",
+        "description": "Updates by stable id or Source-scoped name when present, otherwise creates a Connection.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upserted Connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Connection or rule configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/connections/{connectionId}": {
+      "get": {
+        "operationId": "retrieveConnection",
+        "summary": "Retrieve a connection",
+        "description": "Returns one Connection with canonical runtime rules and embedded secret-free resources.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Stable web_* Connection identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "replaceConnection",
+        "summary": "Replace a connection",
+        "description": "Updates a Connection, canonicalizes rules, refreshes rule indexes and caches, and drains paused Events when resumed.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Stable web_* Connection identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated Connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Connection or rule configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateConnection",
+        "summary": "Update a connection",
+        "description": "Partially updates a Connection while preserving omitted fields and synchronizing indexes and caches.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Stable web_* Connection identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated Connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Connection or rule configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteConnection",
+        "summary": "Delete a connection",
+        "description": "Deletes a Connection and invalidates its Connection and Source-active caches.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Stable web_* Connection identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection deletion result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteConnectionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/connections/{connectionId}/latest-input": {
+      "get": {
+        "operationId": "retrieveConnectionLatestInput",
+        "summary": "Retrieve the latest connection input",
+        "description": "Returns the latest Source request input for mapping previews, using coverage-gated routing and an exact bounded scatter fallback.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Stable web_* Connection identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest Connection input or null",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionLatestInputResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/connections/{connectionId}/enable": {
+      "put": {
+        "operationId": "enableConnection",
+        "summary": "Enable a connection",
+        "description": "Enables a Connection and refreshes its runtime caches.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Stable web_* Connection identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enabled Connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "enableConnectionPost",
+        "summary": "Enable a connection with POST",
+        "description": "Compatibility alias for enabling a Connection and refreshing its runtime caches.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Stable web_* Connection identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enabled Connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/connections/{connectionId}/disable": {
+      "put": {
+        "operationId": "disableConnection",
+        "summary": "Disable a connection",
+        "description": "Disables a Connection and refreshes its runtime caches.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Stable web_* Connection identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disabled Connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "disableConnectionPost",
+        "summary": "Disable a connection with POST",
+        "description": "Compatibility alias for disabling a Connection and refreshing its runtime caches.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Stable web_* Connection identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disabled Connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/connections/{connectionId}/pause": {
+      "put": {
+        "operationId": "pauseConnection",
+        "summary": "Pause a connection",
+        "description": "Pauses delivery for a Connection without disabling it.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Stable web_* Connection identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paused Connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/connections/{connectionId}/unpause": {
+      "put": {
+        "operationId": "unpauseConnection",
+        "summary": "Unpause a connection",
+        "description": "Resumes a paused Connection and schedules draining of its deferred Events.",
+        "tags": [
+          "Connections"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Stable web_* Connection identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumed Connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7037,6 +8050,442 @@
           },
           "id": {
             "$ref": "#/components/schemas/ActionId"
+          }
+        }
+      },
+      "ConnectionId": {
+        "type": "string",
+        "pattern": "^web_[A-Za-z0-9_-]+$"
+      },
+      "ConnectionModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "source_id",
+          "source_proxy",
+          "source_proxy_url",
+          "destination_id",
+          "description",
+          "disabled_at",
+          "updated_at",
+          "created_at",
+          "paused_at",
+          "name",
+          "rules",
+          "destination",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_proxy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_proxy_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "destination_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "disabled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "paused_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "destination": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        }
+      },
+      "ConnectionPagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "order_by",
+          "dir",
+          "limit"
+        ],
+        "properties": {
+          "order_by": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "updated_at",
+              "name"
+            ]
+          },
+          "dir": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 255
+          }
+        }
+      },
+      "ConnectionListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pagination",
+          "count",
+          "models"
+        ],
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/ConnectionPagination"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "models": {
+            "type": "array",
+            "maxItems": 255,
+            "items": {
+              "$ref": "#/components/schemas/ConnectionModel"
+            }
+          }
+        }
+      },
+      "ConnectionCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "destination_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": true
+          },
+          "destination": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": true
+          },
+          "disabled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "paused_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        }
+      },
+      "ConnectionUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "destination_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": true
+          },
+          "destination": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": true
+          },
+          "disabled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "paused_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        }
+      },
+      "ConnectionLatestInputResponse": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "connection_id",
+          "latest_input"
+        ],
+        "properties": {
+          "connection_id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "latest_input": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": true,
+                "required": [
+                  "source_id",
+                  "request_id",
+                  "original_event_data_id",
+                  "created_at",
+                  "payload_r2_key",
+                  "payload_r2_bucket_name",
+                  "input"
+                ],
+                "properties": {
+                  "source_id": {
+                    "type": "string"
+                  },
+                  "request_id": {
+                    "type": "string"
+                  },
+                  "original_event_data_id": {
+                    "type": "string"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "payload_r2_key": {
+                    "type": "string"
+                  },
+                  "payload_r2_bucket_name": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "input": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "DeleteConnectionResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deleted",
+          "id"
+        ],
+        "properties": {
+          "deleted": {
+            "type": "boolean",
+            "const": true
+          },
+          "id": {
+            "$ref": "#/components/schemas/ConnectionId"
           }
         }
       },

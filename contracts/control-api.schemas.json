@@ -3,7 +3,7 @@
   "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
   "title": "FastHook Control API — Partial contract",
   "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
-  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry, action-crud.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry, action-crud, connection-crud, connection-latest-input.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -3298,6 +3298,442 @@
         },
         "id": {
           "$ref": "#/$defs/ActionId"
+        }
+      }
+    },
+    "ConnectionId": {
+      "type": "string",
+      "pattern": "^web_[A-Za-z0-9_-]+$"
+    },
+    "ConnectionModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "team_id",
+        "source_id",
+        "source_proxy",
+        "source_proxy_url",
+        "destination_id",
+        "description",
+        "disabled_at",
+        "updated_at",
+        "created_at",
+        "paused_at",
+        "name",
+        "rules",
+        "destination",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ConnectionId"
+        },
+        "team_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_proxy": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_proxy_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "destination_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "disabled_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "paused_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "destination": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      }
+    },
+    "ConnectionPagination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_by",
+        "dir",
+        "limit"
+      ],
+      "properties": {
+        "order_by": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "updated_at",
+            "name"
+          ]
+        },
+        "dir": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 255
+        }
+      }
+    },
+    "ConnectionListResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pagination",
+        "count",
+        "models"
+      ],
+      "properties": {
+        "pagination": {
+          "$ref": "#/$defs/ConnectionPagination"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 255,
+          "items": {
+            "$ref": "#/$defs/ConnectionModel"
+          }
+        }
+      }
+    },
+    "ConnectionCreateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ConnectionId"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "destination_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        },
+        "destination": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        },
+        "disabled_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "paused_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      }
+    },
+    "ConnectionUpdateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "destination_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        },
+        "destination": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        },
+        "disabled_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "paused_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      }
+    },
+    "ConnectionLatestInputResponse": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "connection_id",
+        "latest_input"
+      ],
+      "properties": {
+        "connection_id": {
+          "$ref": "#/$defs/ConnectionId"
+        },
+        "latest_input": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "source_id",
+                "request_id",
+                "original_event_data_id",
+                "created_at",
+                "payload_r2_key",
+                "payload_r2_bucket_name",
+                "input"
+              ],
+              "properties": {
+                "source_id": {
+                  "type": "string"
+                },
+                "request_id": {
+                  "type": "string"
+                },
+                "original_event_data_id": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "payload_r2_key": {
+                  "type": "string"
+                },
+                "payload_r2_bucket_name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "input": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "DeleteConnectionResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deleted",
+        "id"
+      ],
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "const": true
+        },
+        "id": {
+          "$ref": "#/$defs/ConnectionId"
         }
       }
     },
