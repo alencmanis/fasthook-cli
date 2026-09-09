@@ -3,7 +3,7 @@
   "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
   "title": "FastHook Control API — Partial contract",
   "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
-  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry, action-crud, connection-crud, connection-latest-input, source-crud, destination-crud, provider-accounts.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry, action-crud, connection-crud, connection-latest-input, source-crud, destination-crud, provider-accounts, provider-catalogs, action-options.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -4872,6 +4872,583 @@
         "subscriptions_failed": {
           "type": "integer",
           "minimum": 0
+        }
+      }
+    },
+    "CatalogJsonObject": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      }
+    },
+    "ActionProviderCredentialField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "label",
+        "type",
+        "required"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "text",
+            "secret"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "help": {
+          "type": "string"
+        }
+      }
+    },
+    "ActionProviderAuthMode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "name",
+        "description"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "enum": [
+            "fasthook_bot",
+            "customer_bot",
+            "customer_webhook"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ActionProviderAuth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "provider_key",
+        "connection_type",
+        "credential_fields",
+        "modes"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "selectable"
+        },
+        "provider_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "connection_type": {
+          "type": "string",
+          "enum": [
+            "oauth2",
+            "api_key"
+          ]
+        },
+        "credential_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ActionProviderCredentialField"
+          }
+        },
+        "modes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ActionProviderAuthMode"
+          }
+        }
+      }
+    },
+    "ActionProviderRateLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requests",
+        "period"
+      ],
+      "properties": {
+        "requests": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "period": {
+          "type": "string",
+          "enum": [
+            "second",
+            "minute",
+            "hour",
+            "day"
+          ]
+        }
+      }
+    },
+    "ActionProviderDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "provider_key",
+        "name",
+        "description",
+        "category",
+        "required_permissions",
+        "required_oauth_scopes",
+        "version",
+        "transport",
+        "auth_modes",
+        "default_auth_mode",
+        "input_schema",
+        "output_schema",
+        "schema_provenance",
+        "primary_output",
+        "input_sample",
+        "output_sample",
+        "rate_limit"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_permissions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_oauth_scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "transport": {
+          "type": "string",
+          "enum": [
+            "api",
+            "webhook"
+          ]
+        },
+        "auth_modes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "fasthook_bot",
+              "customer_bot",
+              "customer_webhook"
+            ]
+          }
+        },
+        "default_auth_mode": {
+          "type": "string",
+          "enum": [
+            "fasthook_bot",
+            "customer_bot",
+            "customer_webhook"
+          ]
+        },
+        "input_schema": {
+          "$ref": "#/$defs/CatalogJsonObject"
+        },
+        "output_schema": {
+          "$ref": "#/$defs/CatalogJsonObject"
+        },
+        "schema_provenance": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "primary_output": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "input_sample": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "output_sample": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "rate_limit": {
+          "$ref": "#/$defs/ActionProviderRateLimit"
+        }
+      }
+    },
+    "ActionProviderModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "name",
+        "description",
+        "icon_key",
+        "manifest_version",
+        "config_version",
+        "capabilities",
+        "auth",
+        "actions"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "icon_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifest_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "config_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "auth": {
+          "$ref": "#/$defs/ActionProviderAuth"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ActionProviderDefinition"
+          }
+        }
+      }
+    },
+    "ActionProviderListResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "models"
+      ],
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ActionProviderModel"
+          }
+        }
+      }
+    },
+    "SourceProviderDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "providerKey",
+        "name",
+        "description",
+        "category",
+        "deliveryMode",
+        "version",
+        "available",
+        "outputSchema",
+        "exportPath",
+        "primaryOutput",
+        "sample",
+        "schemaProvenance"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "providerKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deliveryMode": {
+          "type": "string",
+          "enum": [
+            "polling",
+            "instant"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "requiredScopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/CatalogJsonObject"
+        },
+        "exportPath": {
+          "type": "string"
+        },
+        "primaryOutput": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "sample": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "schemaProvenance": {
+          "$ref": "#/$defs/JsonValue"
+        }
+      }
+    },
+    "SourceProviderModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "name",
+        "manifestVersion",
+        "configVersion",
+        "eventEnvelopeVersion",
+        "capabilities",
+        "auth",
+        "fields",
+        "definitions"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifestVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "configVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "eventEnvelopeVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "auth": {
+          "$ref": "#/$defs/CatalogJsonObject"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CatalogJsonObject"
+          }
+        },
+        "definitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceProviderDefinition"
+          }
+        },
+        "catalogApps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CatalogJsonObject"
+          }
+        }
+      }
+    },
+    "SourceProviderListResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "models"
+      ],
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceProviderModel"
+          }
+        }
+      }
+    },
+    "ActionOptionsRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_key",
+        "resource"
+      ],
+      "properties": {
+        "provider_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource": {
+          "type": "string",
+          "minLength": 1
+        },
+        "auth_mode": {
+          "type": "string",
+          "enum": [
+            "fasthook_bot",
+            "customer_bot",
+            "customer_webhook"
+          ]
+        },
+        "provider_account_id": {
+          "$ref": "#/$defs/ProviderAccountId"
+        },
+        "action_id": {
+          "type": "string",
+          "pattern": "^act_[A-Za-z0-9_-]{8,128}$"
+        },
+        "credentials": {
+          "$ref": "#/$defs/CatalogJsonObject"
+        },
+        "guild_id": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "cursor": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ActionOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        }
+      }
+    },
+    "ActionOptionsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "models",
+        "next_cursor"
+      ],
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ActionOption"
+          }
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },

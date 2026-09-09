@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.15.0",
+    "version": "0.16.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -38,6 +38,12 @@
     },
     {
       "name": "Provider accounts"
+    },
+    {
+      "name": "Provider catalogs"
+    },
+    {
+      "name": "Action options"
     }
   ],
   "x-fasthook-contract-coverage": {
@@ -58,11 +64,15 @@
       "connection-latest-input",
       "source-crud",
       "destination-crud",
-      "provider-accounts"
+      "provider-accounts",
+      "provider-catalogs",
+      "action-options"
     ],
     "sourceFiles": [
       "src/control-api.ts",
       "src/control-api-authorization.ts",
+      "src/action-catalog.ts",
+      "src/control-api-action-provider-options.ts",
       "src/control-api-actions.ts",
       "src/control-api-destination-config.ts",
       "src/control-api-destination-policy.ts",
@@ -71,14 +81,15 @@
       "src/control-api-resources.ts",
       "src/control-api-source-resources.ts",
       "src/control-api-triggers.ts",
+      "src/trigger-catalog.ts",
       "src/control-api-transformations.ts",
       "src/control-api-workflows.ts",
       "src/filter-rule.ts",
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status, Connection CRUD/status/pause/latest-input, Source CRUD/status, Destination CRUD/status, and Provider Account operations",
-      "Source provider catalogs, channel operations, delivery inspection, run history, activity, and manual execution/retry endpoints",
+      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status and dynamic options, Connection CRUD/status/pause/latest-input, Source CRUD/status, Destination CRUD/status, Provider Account operations, and provider catalogs",
+      "Source channel operations, delivery inspection, run history, activity, and manual execution/retry endpoints",
       "Destination metrics and legacy POST enable/disable aliases, whose legacy response DTO differs from the canonical Destination projection",
       "Legacy google-oauth Provider Account aliases, direct-handler-test-only OAuth paths, OAuth state/credential storage internals, and provider subscription/channel cleanup internals",
       "Dashboard proxy paths under /api/control",
@@ -6806,6 +6817,241 @@
           }
         }
       }
+    },
+    "/v1/action-providers": {
+      "get": {
+        "operationId": "listActionProviders",
+        "summary": "List Action providers",
+        "description": "Returns the versioned Action provider catalog, including public authentication metadata, Action schemas, samples, capabilities, and schema provenance. No connected-account credentials are returned.",
+        "tags": [
+          "Provider catalogs"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Action provider catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionProviderListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/source-providers": {
+      "get": {
+        "operationId": "listSourceProviders",
+        "summary": "List Source providers",
+        "description": "Returns the versioned Source and Trigger provider catalog, including public auth metadata, configuration fields, event schemas, samples, capabilities, and schema provenance. Runtime adapters and credentials are not returned.",
+        "tags": [
+          "Provider catalogs"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source provider catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceProviderListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/action-options": {
+      "post": {
+        "operationId": "listActionOptions",
+        "summary": "Browse dynamic Action options",
+        "description": "Searches or pages provider-specific resources for Action configuration. This credential-adjacent read is intentionally dashboard-session-only: it may use a connected account, a saved Action, or customer-managed credentials supplied in the request, but never returns credential values.",
+        "tags": [
+          "Action options"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionOptionsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Provider-specific Action options page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionOptionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported provider, resource, auth mode, or dependency input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Dashboard authentication is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership is required; project API keys are not accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Saved Action was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Connected account or credentials are unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provider-specific option input is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Provider rate limit reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Provider options request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -11701,6 +11947,583 @@
           "subscriptions_failed": {
             "type": "integer",
             "minimum": 0
+          }
+        }
+      },
+      "CatalogJsonObject": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/JsonValue"
+        }
+      },
+      "ActionProviderCredentialField": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "label",
+          "type",
+          "required"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "secret"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "placeholder": {
+            "type": "string"
+          },
+          "help": {
+            "type": "string"
+          }
+        }
+      },
+      "ActionProviderAuthMode": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "name",
+          "description"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "fasthook_bot",
+              "customer_bot",
+              "customer_webhook"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "ActionProviderAuth": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "provider_key",
+          "connection_type",
+          "credential_fields",
+          "modes"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "selectable"
+          },
+          "provider_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "connection_type": {
+            "type": "string",
+            "enum": [
+              "oauth2",
+              "api_key"
+            ]
+          },
+          "credential_fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionProviderCredentialField"
+            }
+          },
+          "modes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/ActionProviderAuthMode"
+            }
+          }
+        }
+      },
+      "ActionProviderRateLimit": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requests",
+          "period"
+        ],
+        "properties": {
+          "requests": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "second",
+              "minute",
+              "hour",
+              "day"
+            ]
+          }
+        }
+      },
+      "ActionProviderDefinition": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "provider_key",
+          "name",
+          "description",
+          "category",
+          "required_permissions",
+          "required_oauth_scopes",
+          "version",
+          "transport",
+          "auth_modes",
+          "default_auth_mode",
+          "input_schema",
+          "output_schema",
+          "schema_provenance",
+          "primary_output",
+          "input_sample",
+          "output_sample",
+          "rate_limit"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provider_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required_permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "required_oauth_scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "api",
+              "webhook"
+            ]
+          },
+          "auth_modes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "enum": [
+                "fasthook_bot",
+                "customer_bot",
+                "customer_webhook"
+              ]
+            }
+          },
+          "default_auth_mode": {
+            "type": "string",
+            "enum": [
+              "fasthook_bot",
+              "customer_bot",
+              "customer_webhook"
+            ]
+          },
+          "input_schema": {
+            "$ref": "#/components/schemas/CatalogJsonObject"
+          },
+          "output_schema": {
+            "$ref": "#/components/schemas/CatalogJsonObject"
+          },
+          "schema_provenance": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "primary_output": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "input_sample": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "output_sample": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "rate_limit": {
+            "$ref": "#/components/schemas/ActionProviderRateLimit"
+          }
+        }
+      },
+      "ActionProviderModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "name",
+          "description",
+          "icon_key",
+          "manifest_version",
+          "config_version",
+          "capabilities",
+          "auth",
+          "actions"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "icon_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "manifest_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "config_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "auth": {
+            "$ref": "#/components/schemas/ActionProviderAuth"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionProviderDefinition"
+            }
+          }
+        }
+      },
+      "ActionProviderListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "models"
+        ],
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionProviderModel"
+            }
+          }
+        }
+      },
+      "SourceProviderDefinition": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "providerKey",
+          "name",
+          "description",
+          "category",
+          "deliveryMode",
+          "version",
+          "available",
+          "outputSchema",
+          "exportPath",
+          "primaryOutput",
+          "sample",
+          "schemaProvenance"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "providerKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "deliveryMode": {
+            "type": "string",
+            "enum": [
+              "polling",
+              "instant"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "requiredScopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputSchema": {
+            "$ref": "#/components/schemas/CatalogJsonObject"
+          },
+          "exportPath": {
+            "type": "string"
+          },
+          "primaryOutput": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "sample": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "schemaProvenance": {
+            "$ref": "#/components/schemas/JsonValue"
+          }
+        }
+      },
+      "SourceProviderModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "name",
+          "manifestVersion",
+          "configVersion",
+          "eventEnvelopeVersion",
+          "capabilities",
+          "auth",
+          "fields",
+          "definitions"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "manifestVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "configVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "eventEnvelopeVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "auth": {
+            "$ref": "#/components/schemas/CatalogJsonObject"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogJsonObject"
+            }
+          },
+          "definitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceProviderDefinition"
+            }
+          },
+          "catalogApps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogJsonObject"
+            }
+          }
+        }
+      },
+      "SourceProviderListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "models"
+        ],
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceProviderModel"
+            }
+          }
+        }
+      },
+      "ActionOptionsRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_key",
+          "resource"
+        ],
+        "properties": {
+          "provider_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resource": {
+            "type": "string",
+            "minLength": 1
+          },
+          "auth_mode": {
+            "type": "string",
+            "enum": [
+              "fasthook_bot",
+              "customer_bot",
+              "customer_webhook"
+            ]
+          },
+          "provider_account_id": {
+            "$ref": "#/components/schemas/ProviderAccountId"
+          },
+          "action_id": {
+            "type": "string",
+            "pattern": "^act_[A-Za-z0-9_-]{8,128}$"
+          },
+          "credentials": {
+            "$ref": "#/components/schemas/CatalogJsonObject"
+          },
+          "guild_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "cursor": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "dependencies": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ActionOption": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          }
+        }
+      },
+      "ActionOptionsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "models",
+          "next_cursor"
+        ],
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionOption"
+            }
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
