@@ -3,7 +3,7 @@
   "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
   "title": "FastHook Control API — Partial contract",
   "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
-  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry, action-crud, connection-crud, connection-latest-input.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry, action-crud, connection-crud, connection-latest-input, source-crud.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -3734,6 +3734,480 @@
         },
         "id": {
           "$ref": "#/$defs/ConnectionId"
+        }
+      }
+    },
+    "SourceId": {
+      "type": "string",
+      "pattern": "^src_[A-Za-z0-9]+$"
+    },
+    "SourceType": {
+      "type": "string",
+      "enum": [
+        "WEBHOOK",
+        "GITHUB",
+        "STRIPE",
+        "SHOPIFY",
+        "SLACK",
+        "SVIX",
+        "TWILIO",
+        "META",
+        "MICROSOFT_GRAPH",
+        "GITLAB",
+        "HUBSPOT",
+        "CLICKFUNNELS",
+        "CLOSE",
+        "DRIP",
+        "AUTOPILOT",
+        "SHARPSPRING",
+        "EXACT_ONLINE",
+        "RAMP",
+        "ACTIVETRAIL",
+        "GETRESPONSE",
+        "GOTO_WEBINAR",
+        "ZOOM",
+        "SENDGRID",
+        "DISCORD",
+        "DISCORD_EVENTS",
+        "TELEGRAM",
+        "AWS_SNS",
+        "PAYPAL",
+        "MAILGUN",
+        "POSTMARK",
+        "LINE",
+        "DOCUSIGN",
+        "DROPBOX",
+        "INTERCOM",
+        "LINEAR",
+        "TYPEFORM",
+        "CALENDLY",
+        "PADDLE",
+        "SQUARE",
+        "COINBASE_COMMERCE",
+        "RAZORPAY",
+        "LEMON_SQUEEZY",
+        "ASANA",
+        "ZENDESK",
+        "OKTA",
+        "CLERK",
+        "RESEND",
+        "WORKOS",
+        "NYLAS",
+        "XERO",
+        "BITBUCKET",
+        "TRELLO",
+        "WOO_COMMERCE",
+        "WEBEX",
+        "MUX",
+        "VERCEL",
+        "HEROKU",
+        "BUILDKITE",
+        "CIRCLECI",
+        "LAUNCHDARKLY",
+        "CLICKUP",
+        "GRAFANA",
+        "SENTRY",
+        "REVENUECAT",
+        "AUTH0",
+        "KLAVIYO",
+        "CUSTOMER_IO",
+        "HYGRAPH",
+        "SANITY",
+        "AFTERSHIP",
+        "OPENAI",
+        "NOTION",
+        "TWITCH",
+        "CLOUDINARY",
+        "PAYSTACK",
+        "GOCARDLESS",
+        "PAGERDUTY",
+        "BIGCOMMERCE",
+        "CHARGEBEE_RETENTION",
+        "CHECKOUT_COM"
+      ]
+    },
+    "SourceStatus": {
+      "type": "string",
+      "enum": [
+        "enabled",
+        "disabled"
+      ]
+    },
+    "SourceInputType": {
+      "type": "string",
+      "enum": [
+        "webhook",
+        "provider_trigger"
+      ]
+    },
+    "SourceModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "description",
+        "type",
+        "input_type",
+        "status",
+        "url",
+        "config",
+        "team_id",
+        "disabled_at",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/SourceId"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "input_type": {
+          "$ref": "#/$defs/SourceInputType"
+        },
+        "status": {
+          "$ref": "#/$defs/SourceStatus"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "config": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "team_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disabled_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "provider_key": {
+          "type": "string"
+        },
+        "definition_key": {
+          "type": "string"
+        },
+        "provider_capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider_account_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "delivery_mode": {
+          "type": "string",
+          "enum": [
+            "instant",
+            "polling"
+          ]
+        },
+        "schedule": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "cursor": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "next_run_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_run_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_success_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "channel": {
+          "$ref": "#/$defs/JsonValue"
+        }
+      }
+    },
+    "SourcePagination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_by",
+        "dir",
+        "limit"
+      ],
+      "properties": {
+        "order_by": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "updated_at",
+            "name"
+          ]
+        },
+        "dir": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 255
+        }
+      }
+    },
+    "SourceListResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pagination",
+        "count",
+        "models"
+      ],
+      "properties": {
+        "pagination": {
+          "$ref": "#/$defs/SourcePagination"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 255,
+          "items": {
+            "$ref": "#/$defs/SourceModel"
+          }
+        }
+      }
+    },
+    "SourceCreateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "status": {
+          "$ref": "#/$defs/SourceStatus"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "input_type": {
+          "$ref": "#/$defs/SourceInputType"
+        },
+        "definition_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider_account_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schedule": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      }
+    },
+    "SourceUpdateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "status": {
+          "$ref": "#/$defs/SourceStatus"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "source_id": {
+          "$ref": "#/$defs/SourceId"
+        },
+        "provider_account_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schedule": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      }
+    },
+    "SourceUpsertRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "status": {
+          "$ref": "#/$defs/SourceStatus"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      }
+    },
+    "DeleteSourceResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/SourceId"
         }
       }
     },

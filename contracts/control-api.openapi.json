@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.12.0",
+    "version": "0.13.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -29,6 +29,9 @@
     },
     {
       "name": "Connections"
+    },
+    {
+      "name": "Sources"
     }
   ],
   "x-fasthook-contract-coverage": {
@@ -46,7 +49,8 @@
       "workflow-step-retry",
       "action-crud",
       "connection-crud",
-      "connection-latest-input"
+      "connection-latest-input",
+      "source-crud"
     ],
     "sourceFiles": [
       "src/control-api.ts",
@@ -54,13 +58,16 @@
       "src/control-api-actions.ts",
       "src/control-api-filters.ts",
       "src/control-api-resources.ts",
+      "src/control-api-source-resources.ts",
+      "src/control-api-triggers.ts",
       "src/control-api-transformations.ts",
       "src/control-api-workflows.ts",
       "src/filter-rule.ts",
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status, and Connection CRUD/status/pause/latest-input operations",
+      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status, Connection CRUD/status/pause/latest-input, and Source CRUD/status operations",
+      "Source provider catalogs, channel operations, delivery inspection, run history, activity, and manual execution/retry endpoints",
       "Dashboard proxy paths under /api/control",
       "CLI commands and widget runtime surfaces; synchronized artifacts do not imply owner-session feature support",
       "The hand-authored public documentation OpenAPI document"
@@ -4729,6 +4736,877 @@
           }
         }
       }
+    },
+    "/v1/sources": {
+      "get": {
+        "operationId": "listSources",
+        "summary": "List sources",
+        "description": "Returns a bounded page of webhook and provider Sources with secret-redacted configuration. Generated clients use server query defaults.",
+        "tags": [
+          "Sources"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Source filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSource",
+        "summary": "Create a source",
+        "description": "Creates a webhook Source, or an app Source when input_type is provider_trigger or definition_key is supplied. Secret fields are encrypted before persistence.",
+        "tags": [
+          "Sources"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created Source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Source configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Source already exists or provider prerequisites are unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "upsertSource",
+        "summary": "Upsert a webhook source",
+        "description": "Updates a webhook Source by name when present, otherwise creates one.",
+        "tags": [
+          "Sources"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upserted Source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Source configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Source URL conflicts with an existing Source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/{sourceId}": {
+      "get": {
+        "operationId": "retrieveSource",
+        "summary": "Retrieve a source",
+        "description": "Returns one webhook or provider Source with secret-redacted configuration.",
+        "tags": [
+          "Sources"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "replaceSource",
+        "summary": "Replace a source",
+        "description": "Updates a webhook or provider Source. Provider identity and definition cannot be changed through this route.",
+        "tags": [
+          "Sources"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated Source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Source configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Source configuration conflicts with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateSource",
+        "summary": "Update a source",
+        "description": "Partially updates a webhook or provider Source while preserving omitted fields.",
+        "tags": [
+          "Sources"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated Source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Source configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Source configuration conflicts with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSource",
+        "summary": "Delete a source",
+        "description": "Deletes a webhook Source and invalidates its lookup cache. Webhook Sources still attached to Workflows cannot be deleted; provider-Source deletion is outside this partial response contract.",
+        "tags": [
+          "Sources"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source deletion result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteSourceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Source is still attached to a Workflow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/{sourceId}/enable": {
+      "put": {
+        "operationId": "enableSource",
+        "summary": "Enable a source",
+        "description": "Enables a Source; provider Sources require a valid connected account and required scopes.",
+        "tags": [
+          "Sources"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enabled Source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Provider account is not ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "enableSourcePost",
+        "summary": "Enable a source with POST",
+        "description": "Compatibility alias for enabling a Source.",
+        "tags": [
+          "Sources"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enabled Source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Provider account is not ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sources/{sourceId}/disable": {
+      "put": {
+        "operationId": "disableSource",
+        "summary": "Disable a source",
+        "description": "Disables a Source; webhook Sources also disable their Connections.",
+        "tags": [
+          "Sources"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disabled Source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "disableSourcePost",
+        "summary": "Disable a source with POST",
+        "description": "Compatibility alias for disabling a Source.",
+        "tags": [
+          "Sources"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "Stable src_* Source identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disabled Source",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8486,6 +9364,480 @@
           },
           "id": {
             "$ref": "#/components/schemas/ConnectionId"
+          }
+        }
+      },
+      "SourceId": {
+        "type": "string",
+        "pattern": "^src_[A-Za-z0-9]+$"
+      },
+      "SourceType": {
+        "type": "string",
+        "enum": [
+          "WEBHOOK",
+          "GITHUB",
+          "STRIPE",
+          "SHOPIFY",
+          "SLACK",
+          "SVIX",
+          "TWILIO",
+          "META",
+          "MICROSOFT_GRAPH",
+          "GITLAB",
+          "HUBSPOT",
+          "CLICKFUNNELS",
+          "CLOSE",
+          "DRIP",
+          "AUTOPILOT",
+          "SHARPSPRING",
+          "EXACT_ONLINE",
+          "RAMP",
+          "ACTIVETRAIL",
+          "GETRESPONSE",
+          "GOTO_WEBINAR",
+          "ZOOM",
+          "SENDGRID",
+          "DISCORD",
+          "DISCORD_EVENTS",
+          "TELEGRAM",
+          "AWS_SNS",
+          "PAYPAL",
+          "MAILGUN",
+          "POSTMARK",
+          "LINE",
+          "DOCUSIGN",
+          "DROPBOX",
+          "INTERCOM",
+          "LINEAR",
+          "TYPEFORM",
+          "CALENDLY",
+          "PADDLE",
+          "SQUARE",
+          "COINBASE_COMMERCE",
+          "RAZORPAY",
+          "LEMON_SQUEEZY",
+          "ASANA",
+          "ZENDESK",
+          "OKTA",
+          "CLERK",
+          "RESEND",
+          "WORKOS",
+          "NYLAS",
+          "XERO",
+          "BITBUCKET",
+          "TRELLO",
+          "WOO_COMMERCE",
+          "WEBEX",
+          "MUX",
+          "VERCEL",
+          "HEROKU",
+          "BUILDKITE",
+          "CIRCLECI",
+          "LAUNCHDARKLY",
+          "CLICKUP",
+          "GRAFANA",
+          "SENTRY",
+          "REVENUECAT",
+          "AUTH0",
+          "KLAVIYO",
+          "CUSTOMER_IO",
+          "HYGRAPH",
+          "SANITY",
+          "AFTERSHIP",
+          "OPENAI",
+          "NOTION",
+          "TWITCH",
+          "CLOUDINARY",
+          "PAYSTACK",
+          "GOCARDLESS",
+          "PAGERDUTY",
+          "BIGCOMMERCE",
+          "CHARGEBEE_RETENTION",
+          "CHECKOUT_COM"
+        ]
+      },
+      "SourceStatus": {
+        "type": "string",
+        "enum": [
+          "enabled",
+          "disabled"
+        ]
+      },
+      "SourceInputType": {
+        "type": "string",
+        "enum": [
+          "webhook",
+          "provider_trigger"
+        ]
+      },
+      "SourceModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "description",
+          "type",
+          "input_type",
+          "status",
+          "url",
+          "config",
+          "team_id",
+          "disabled_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "$ref": "#/components/schemas/SourceType"
+          },
+          "input_type": {
+            "$ref": "#/components/schemas/SourceInputType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SourceStatus"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "disabled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "provider_key": {
+            "type": "string"
+          },
+          "definition_key": {
+            "type": "string"
+          },
+          "provider_capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "provider_account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delivery_mode": {
+            "type": "string",
+            "enum": [
+              "instant",
+              "polling"
+            ]
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "cursor": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "next_run_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_run_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "channel": {
+            "$ref": "#/components/schemas/JsonValue"
+          }
+        }
+      },
+      "SourcePagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "order_by",
+          "dir",
+          "limit"
+        ],
+        "properties": {
+          "order_by": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "updated_at",
+              "name"
+            ]
+          },
+          "dir": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 255
+          }
+        }
+      },
+      "SourceListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pagination",
+          "count",
+          "models"
+        ],
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/SourcePagination"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "models": {
+            "type": "array",
+            "maxItems": 255,
+            "items": {
+              "$ref": "#/components/schemas/SourceModel"
+            }
+          }
+        }
+      },
+      "SourceCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "$ref": "#/components/schemas/SourceType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SourceStatus"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "input_type": {
+            "$ref": "#/components/schemas/SourceInputType"
+          },
+          "definition_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provider_account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schedule": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        }
+      },
+      "SourceUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "$ref": "#/components/schemas/SourceType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SourceStatus"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "provider_account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schedule": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        }
+      },
+      "SourceUpsertRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "$ref": "#/components/schemas/SourceType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SourceStatus"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        }
+      },
+      "DeleteSourceResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/SourceId"
           }
         }
       },
