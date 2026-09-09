@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.21.0",
+    "version": "0.22.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -65,6 +65,9 @@
     },
     {
       "name": "Source operations"
+    },
+    {
+      "name": "Request Fixtures"
     }
   ],
   "x-fasthook-contract-coverage": {
@@ -92,7 +95,8 @@
       "request-reads",
       "event-attempt-reads",
       "request-event-mutations",
-      "source-operations"
+      "source-operations",
+      "request-fixtures"
     ],
     "sourceFiles": [
       "src/control-api.ts",
@@ -103,6 +107,7 @@
       "src/control-api-destination-config.ts",
       "src/control-api-destination-policy.ts",
       "src/control-api-filters.ts",
+      "src/control-api-fixtures.ts",
       "src/control-api-provider-accounts.ts",
       "src/control-api-batch-operations.ts",
       "src/control-api-events-query.ts",
@@ -118,8 +123,8 @@
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status and dynamic options, Connection CRUD/status/pause/latest-input, Source CRUD/status, Destination CRUD/status, Provider Account operations, provider catalogs, resource metrics, Request reads, and Event/Attempt reads",
-      "Public share-token retrieval; Request Fixtures; Workflow Template instantiation and Workflow activity; and remaining internal-only surfaces",
+      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status and dynamic options, Connection CRUD/status/pause/latest-input, Source CRUD/status, Destination CRUD/status, Provider Account operations, provider catalogs, resource metrics, Request reads, Request Fixtures, and Event/Attempt reads",
+      "Public share-token retrieval; Workflow Template instantiation and Workflow activity; and remaining internal-only surfaces",
       "The legacy /v1/destinations/metrics alias and legacy POST enable/disable aliases, whose legacy response DTO differs from the canonical Destination projection",
       "Legacy google-oauth Provider Account aliases, direct-handler-test-only OAuth paths, OAuth state/credential storage internals, and provider subscription/channel cleanup internals",
       "Dashboard proxy paths under /api/control",
@@ -10691,6 +10696,659 @@
           }
         }
       }
+    },
+    "/v1/request-fixtures": {
+      "get": {
+        "operationId": "listRequestFixtures",
+        "summary": "List Request Fixtures",
+        "description": "Lists saved Request payload fixtures without exposing team or R2 storage metadata.",
+        "tags": [
+          "Request Fixtures"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request Fixtures",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestFixtureListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Required team access or project-key grant is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createRequestFixture",
+        "summary": "Create a Request Fixture",
+        "description": "Copies an available Request payload into durable fixture storage for later replay.",
+        "tags": [
+          "Request Fixtures"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRequestFixtureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created Request Fixture",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestFixtureModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Required team access or project-key grant is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request Fixture or source Request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Source payload or replay target is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/request-fixtures/{fixtureId}": {
+      "get": {
+        "operationId": "retrieveRequestFixture",
+        "summary": "Retrieve a Request Fixture",
+        "description": "Returns one saved fixture without exposing its team or R2 storage metadata.",
+        "tags": [
+          "Request Fixtures"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "fixtureId",
+            "in": "path",
+            "required": true,
+            "description": "Stable fix_* Request Fixture identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestFixtureId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request Fixture",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestFixtureModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Required team access or project-key grant is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request Fixture or source Request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patchRequestFixture",
+        "summary": "Patch a Request Fixture",
+        "description": "Updates the fixture name or description while retaining the saved payload.",
+        "tags": [
+          "Request Fixtures"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "fixtureId",
+            "in": "path",
+            "required": true,
+            "description": "Stable fix_* Request Fixture identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestFixtureId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRequestFixtureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated Request Fixture",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestFixtureModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Required team access or project-key grant is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request Fixture or source Request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateRequestFixture",
+        "summary": "Update a Request Fixture",
+        "description": "Applies the same partial name and description semantics as PATCH for compatibility.",
+        "tags": [
+          "Request Fixtures"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "fixtureId",
+            "in": "path",
+            "required": true,
+            "description": "Stable fix_* Request Fixture identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestFixtureId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRequestFixtureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated Request Fixture",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestFixtureModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Required team access or project-key grant is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request Fixture or source Request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteRequestFixture",
+        "summary": "Delete a Request Fixture",
+        "description": "Deletes the authoritative fixture row and best-effort removes its stored payload object.",
+        "tags": [
+          "Request Fixtures"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "fixtureId",
+            "in": "path",
+            "required": true,
+            "description": "Stable fix_* Request Fixture identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestFixtureId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted Request Fixture",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteRequestFixtureResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Required team access or project-key grant is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request Fixture or source Request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/request-fixtures/{fixtureId}/targets": {
+      "get": {
+        "operationId": "listRequestFixtureTargets",
+        "summary": "List Request Fixture replay targets",
+        "description": "Lists active Connection and Destination targets eligible for fixture replay.",
+        "tags": [
+          "Request Fixtures"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "fixtureId",
+            "in": "path",
+            "required": true,
+            "description": "Stable fix_* Request Fixture identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestFixtureId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request Fixture replay targets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestFixtureTargetsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Required team access or project-key grant is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request Fixture or source Request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/request-fixtures/{fixtureId}/replay": {
+      "post": {
+        "operationId": "replayRequestFixture",
+        "summary": "Replay a Request Fixture",
+        "description": "Queues the saved payload for one active Connection using the exact fixture replay execute grant.",
+        "tags": [
+          "Request Fixtures"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_execute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "fixtureId",
+            "in": "path",
+            "required": true,
+            "description": "Stable fix_* Request Fixture identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestFixtureId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplayRequestFixtureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Request Fixture replay queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplayRequestFixtureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Required team access or project-key grant is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request Fixture or source Request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Source payload or replay target is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Fixture replay queue is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -19674,6 +20332,261 @@
             "items": {
               "$ref": "#/components/schemas/EventBulkOperationModel"
             }
+          }
+        }
+      },
+      "RequestFixtureId": {
+        "type": "string",
+        "pattern": "^fix_[a-f0-9]{20}$"
+      },
+      "RequestFixtureName": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120,
+        "pattern": "\\S"
+      },
+      "RequestFixtureDescription": {
+        "anyOf": [
+          {
+            "type": "string",
+            "maxLength": 500
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "RequestFixtureModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "description",
+          "source_id",
+          "source_name",
+          "original_request_id",
+          "replay_count",
+          "last_replayed_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/RequestFixtureId"
+          },
+          "name": {
+            "$ref": "#/components/schemas/RequestFixtureName"
+          },
+          "description": {
+            "$ref": "#/components/schemas/RequestFixtureDescription"
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "source_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "original_request_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "replay_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "last_replayed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RequestFixtureListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "models"
+        ],
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequestFixtureModel"
+            }
+          }
+        }
+      },
+      "CreateRequestFixtureRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "request_id",
+          "name"
+        ],
+        "properties": {
+          "request_id": {
+            "$ref": "#/components/schemas/RequestId"
+          },
+          "name": {
+            "$ref": "#/components/schemas/RequestFixtureName"
+          },
+          "description": {
+            "$ref": "#/components/schemas/RequestFixtureDescription"
+          }
+        }
+      },
+      "UpdateRequestFixtureRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/RequestFixtureName"
+          },
+          "description": {
+            "$ref": "#/components/schemas/RequestFixtureDescription"
+          }
+        }
+      },
+      "DeleteRequestFixtureResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deleted",
+          "id"
+        ],
+        "properties": {
+          "deleted": {
+            "type": "boolean",
+            "const": true
+          },
+          "id": {
+            "$ref": "#/components/schemas/RequestFixtureId"
+          }
+        }
+      },
+      "RequestFixtureTarget": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "connection_id",
+          "connection_name",
+          "source_id",
+          "source_name",
+          "destination_id",
+          "destination_name",
+          "destination_type"
+        ],
+        "properties": {
+          "connection_id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "connection_name": {
+            "type": "string"
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "source_name": {
+            "type": "string"
+          },
+          "destination_id": {
+            "$ref": "#/components/schemas/DestinationId"
+          },
+          "destination_name": {
+            "type": "string"
+          },
+          "destination_type": {
+            "$ref": "#/components/schemas/DestinationType"
+          }
+        }
+      },
+      "RequestFixtureTargetsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "models"
+        ],
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequestFixtureTarget"
+            }
+          }
+        }
+      },
+      "ReplayRequestFixtureRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "connection_id"
+        ],
+        "properties": {
+          "connection_id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          }
+        }
+      },
+      "ReplayRequestFixtureResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "queued",
+          "fixture_id",
+          "connection_id",
+          "destination_id",
+          "message_id",
+          "replayed_at"
+        ],
+        "properties": {
+          "queued": {
+            "type": "boolean",
+            "const": true
+          },
+          "fixture_id": {
+            "$ref": "#/components/schemas/RequestFixtureId"
+          },
+          "connection_id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "destination_id": {
+            "$ref": "#/components/schemas/DestinationId"
+          },
+          "message_id": {
+            "type": "string",
+            "pattern": "^fxr_[a-f0-9]{20}$"
+          },
+          "replayed_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

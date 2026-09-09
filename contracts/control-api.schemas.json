@@ -3,7 +3,7 @@
   "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
   "title": "FastHook Control API — Partial contract",
   "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
-  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry, action-crud, connection-crud, connection-latest-input, source-crud, destination-crud, provider-accounts, provider-catalogs, action-options, resource-metrics, request-reads, event-attempt-reads, request-event-mutations, source-operations.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry, action-crud, connection-crud, connection-latest-input, source-crud, destination-crud, provider-accounts, provider-catalogs, action-options, resource-metrics, request-reads, event-attempt-reads, request-event-mutations, source-operations, request-fixtures.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -8960,6 +8960,261 @@
           "items": {
             "$ref": "#/$defs/EventBulkOperationModel"
           }
+        }
+      }
+    },
+    "RequestFixtureId": {
+      "type": "string",
+      "pattern": "^fix_[a-f0-9]{20}$"
+    },
+    "RequestFixtureName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "\\S"
+    },
+    "RequestFixtureDescription": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 500
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "RequestFixtureModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "description",
+        "source_id",
+        "source_name",
+        "original_request_id",
+        "replay_count",
+        "last_replayed_at",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/RequestFixtureId"
+        },
+        "name": {
+          "$ref": "#/$defs/RequestFixtureName"
+        },
+        "description": {
+          "$ref": "#/$defs/RequestFixtureDescription"
+        },
+        "source_id": {
+          "$ref": "#/$defs/SourceId"
+        },
+        "source_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "original_request_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RequestId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "replay_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_replayed_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "RequestFixtureListResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "models"
+      ],
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RequestFixtureModel"
+          }
+        }
+      }
+    },
+    "CreateRequestFixtureRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "name"
+      ],
+      "properties": {
+        "request_id": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "name": {
+          "$ref": "#/$defs/RequestFixtureName"
+        },
+        "description": {
+          "$ref": "#/$defs/RequestFixtureDescription"
+        }
+      }
+    },
+    "UpdateRequestFixtureRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/RequestFixtureName"
+        },
+        "description": {
+          "$ref": "#/$defs/RequestFixtureDescription"
+        }
+      }
+    },
+    "DeleteRequestFixtureResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deleted",
+        "id"
+      ],
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "const": true
+        },
+        "id": {
+          "$ref": "#/$defs/RequestFixtureId"
+        }
+      }
+    },
+    "RequestFixtureTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "connection_id",
+        "connection_name",
+        "source_id",
+        "source_name",
+        "destination_id",
+        "destination_name",
+        "destination_type"
+      ],
+      "properties": {
+        "connection_id": {
+          "$ref": "#/$defs/ConnectionId"
+        },
+        "connection_name": {
+          "type": "string"
+        },
+        "source_id": {
+          "$ref": "#/$defs/SourceId"
+        },
+        "source_name": {
+          "type": "string"
+        },
+        "destination_id": {
+          "$ref": "#/$defs/DestinationId"
+        },
+        "destination_name": {
+          "type": "string"
+        },
+        "destination_type": {
+          "$ref": "#/$defs/DestinationType"
+        }
+      }
+    },
+    "RequestFixtureTargetsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "models"
+      ],
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RequestFixtureTarget"
+          }
+        }
+      }
+    },
+    "ReplayRequestFixtureRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "connection_id"
+      ],
+      "properties": {
+        "connection_id": {
+          "$ref": "#/$defs/ConnectionId"
+        }
+      }
+    },
+    "ReplayRequestFixtureResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "queued",
+        "fixture_id",
+        "connection_id",
+        "destination_id",
+        "message_id",
+        "replayed_at"
+      ],
+      "properties": {
+        "queued": {
+          "type": "boolean",
+          "const": true
+        },
+        "fixture_id": {
+          "$ref": "#/$defs/RequestFixtureId"
+        },
+        "connection_id": {
+          "$ref": "#/$defs/ConnectionId"
+        },
+        "destination_id": {
+          "$ref": "#/$defs/DestinationId"
+        },
+        "message_id": {
+          "type": "string",
+          "pattern": "^fxr_[a-f0-9]{20}$"
+        },
+        "replayed_at": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     }
