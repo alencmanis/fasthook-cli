@@ -21,8 +21,8 @@ test("CLI compiles the checksum-locked partial Control API client", async () => 
   ), "utf8"));
   assert.equal(openapi["x-fasthook-contract-coverage"].status, "partial");
   assert.deepEqual(openapi["x-fasthook-contract-coverage"].surfaces,
-    ["project-api-keys", "filter-crud", "filter-test", "transformation-crud", "transformation-execution-history", "transformation-test", "transformation-capabilities", "workflow-crud", "workflow-run-history", "workflow-step-retry"]);
-  assert.equal(Object.keys(openapi.components.schemas).length, 81);
+    ["project-api-keys", "filter-crud", "filter-test", "transformation-crud", "transformation-execution-history", "transformation-test", "transformation-capabilities", "workflow-crud", "workflow-run-history", "workflow-step-retry", "action-crud"]);
+  assert.equal(Object.keys(openapi.components.schemas).length, 89);
 });
 
 test("CLI generated client preserves the owner-session authentication boundary", async () => {
