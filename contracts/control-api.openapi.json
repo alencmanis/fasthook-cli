@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.19.0",
+    "version": "0.20.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -87,7 +87,8 @@
       "action-options",
       "resource-metrics",
       "request-reads",
-      "event-attempt-reads"
+      "event-attempt-reads",
+      "request-event-mutations"
     ],
     "sourceFiles": [
       "src/control-api.ts",
@@ -114,7 +115,7 @@
     ],
     "excluded": [
       "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status and dynamic options, Connection CRUD/status/pause/latest-input, Source CRUD/status, Destination CRUD/status, Provider Account operations, provider catalogs, resource metrics, Request reads, and Event/Attempt reads",
-      "Request share/retry mutations; Event retry/bulk mutations; Source channel operations; delivery activity; and manual execution/retry endpoints",
+      "Public share-token retrieval; Source channel operations; delivery activity; and remaining manual execution/retry endpoints",
       "The legacy /v1/destinations/metrics alias and legacy POST enable/disable aliases, whose legacy response DTO differs from the canonical Destination projection",
       "Legacy google-oauth Provider Account aliases, direct-handler-test-only OAuth paths, OAuth state/credential storage internals, and provider subscription/channel cleanup internals",
       "Dashboard proxy paths under /api/control",
@@ -8388,6 +8389,90 @@
             }
           }
         }
+      },
+      "post": {
+        "operationId": "createRequestBulkOperation",
+        "summary": "Create a Request bulk retry",
+        "description": "Creates a durable bulk-retry operation for Requests matching the supplied bounded filters.",
+        "tags": [
+          "Request bulk operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_execute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestBulkOperationCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Request bulk operation created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestBulkOperationModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filter or time range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:execute grant is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bulk-operation item publication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/events": {
@@ -9056,6 +9141,90 @@
             }
           }
         }
+      },
+      "post": {
+        "operationId": "createEventBulkOperation",
+        "summary": "Create an Event bulk retry",
+        "description": "Creates a durable bulk-retry operation for Events matching the supplied bounded filters.",
+        "tags": [
+          "Event bulk operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_execute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventBulkOperationCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Event bulk operation created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventBulkOperationModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filter or time range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:execute grant is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Bulk-operation item publication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/events/bulk_operations/{operationId}": {
@@ -9122,6 +9291,482 @@
           },
           "404": {
             "description": "Bulk operation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/requests/bulk_operations/{operationId}/cancel": {
+      "post": {
+        "operationId": "cancelRequestBulkOperation",
+        "summary": "Cancel a Request bulk retry",
+        "description": "Atomically cancels a planned or running Request bulk-retry operation.",
+        "tags": [
+          "Request bulk operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "description": "Stable bch_* bulk-operation identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/BatchOperationId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request bulk operation cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestBulkOperationModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team owner or site administrator access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bulk operation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource state does not permit this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/requests/{requestId}/retry": {
+      "post": {
+        "operationId": "retryRequest",
+        "summary": "Retry a Request",
+        "description": "Queues an exact replay or a replay with explicitly supplied method, path, query, header, or body modifications.",
+        "tags": [
+          "Requests"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_execute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "description": "Stable req_* Request identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestRetryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Request retry queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestRetryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid replay modifications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:execute grant is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource state does not permit this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Modified replay body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request retry could not be queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/requests/{requestId}/share": {
+      "post": {
+        "operationId": "createRequestShare",
+        "summary": "Create a sanitized Request share",
+        "description": "Creates an expiring immutable Request snapshot with default secret redaction and optional custom redaction keys.",
+        "tags": [
+          "Requests"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "description": "Stable req_* Request identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRequestShareRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sanitized Request share created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestShareModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid share expiration or TTL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team owner or site administrator access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/events/bulk_operations/{operationId}/cancel": {
+      "post": {
+        "operationId": "cancelEventBulkOperation",
+        "summary": "Cancel an Event bulk retry",
+        "description": "Atomically cancels a planned or running Event bulk-retry operation.",
+        "tags": [
+          "Event bulk operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "description": "Stable bch_* bulk-operation identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/BatchOperationId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event bulk operation cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventBulkOperationModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team owner or site administrator access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bulk operation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource state does not permit this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/events/{eventId}/retry": {
+      "post": {
+        "operationId": "retryEvent",
+        "summary": "Retry an Event",
+        "description": "Queues a new delivery Event from the original send-ready Event payload.",
+        "tags": [
+          "Events"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_execute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "description": "Stable evt_* Event identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/EventId"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Event retry queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventRetryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:execute grant is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Event not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource state does not permit this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Event retry could not be queued",
             "content": {
               "application/json": {
                 "schema": {
@@ -11221,6 +11866,421 @@
                 "minimum": 0,
                 "maximum": 1
               }
+            }
+          }
+        }
+      },
+      "RequestBulkOperationCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/MetricsTimeExpression"
+          },
+          "to": {
+            "$ref": "#/components/schemas/MetricsTimeExpression"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RequestMetricStatus"
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "q": {
+            "type": "string"
+          }
+        }
+      },
+      "EventBulkOperationCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/MetricsTimeExpression"
+          },
+          "to": {
+            "$ref": "#/components/schemas/MetricsTimeExpression"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EventMetricStatus"
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "connection_id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "webhook_id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "destination_id": {
+            "$ref": "#/components/schemas/DestinationId"
+          },
+          "q": {
+            "type": "string"
+          }
+        }
+      },
+      "RequestReplayModifications": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "QUERY",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE",
+              "HEAD",
+              "OPTIONS"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            ]
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "body": {
+            "$ref": "#/components/schemas/JsonValue"
+          }
+        }
+      },
+      "RequestRetryRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "modifications": {
+            "$ref": "#/components/schemas/RequestReplayModifications"
+          },
+          "request": {
+            "$ref": "#/components/schemas/RequestReplayModifications"
+          },
+          "replay": {
+            "$ref": "#/components/schemas/RequestReplayModifications"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "QUERY",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE",
+              "HEAD",
+              "OPTIONS"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            ]
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "body": {
+            "$ref": "#/components/schemas/JsonValue"
+          }
+        }
+      },
+      "RequestRetryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "queued",
+          "transport",
+          "replayed_at",
+          "request_id",
+          "source_id",
+          "replay_message_id",
+          "replay_mode",
+          "original_rejection_cause"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          },
+          "queued": {
+            "type": "boolean",
+            "const": true
+          },
+          "transport": {
+            "type": "string",
+            "const": "queue"
+          },
+          "replayed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "request_id": {
+            "$ref": "#/components/schemas/RequestId"
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "replay_message_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "replay_mode": {
+            "type": "string",
+            "enum": [
+              "exact",
+              "modified"
+            ]
+          },
+          "original_rejection_cause": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "EventRetryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ok",
+          "queued",
+          "transport",
+          "retried_at",
+          "event_id",
+          "replay_event_id"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          },
+          "queued": {
+            "type": "boolean",
+            "const": true
+          },
+          "transport": {
+            "type": "string",
+            "const": "queue"
+          },
+          "retried_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "event_id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "replay_event_id": {
+            "$ref": "#/components/schemas/EventId"
+          }
+        }
+      },
+      "CreateRequestShareRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_in_seconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 2592000
+          },
+          "ttl_seconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 2592000
+          },
+          "ttl": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 2592000
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "include_body": {
+            "type": "boolean"
+          },
+          "redact_keys": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "RequestShareModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "token",
+          "team_id",
+          "request_id",
+          "source_id",
+          "title",
+          "url",
+          "share_url",
+          "expires_at",
+          "revoked_at",
+          "access_count",
+          "last_accessed_at",
+          "created_at",
+          "updated_at",
+          "sanitized",
+          "request"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^shr_[a-f0-9]{24}$"
+          },
+          "token": {
+            "type": "string",
+            "pattern": "^rsh_[a-f0-9]{48}$"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "$ref": "#/components/schemas/RequestId"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "share_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "access_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "last_accessed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sanitized": {
+            "type": "boolean",
+            "const": true
+          },
+          "request": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
             }
           }
         }

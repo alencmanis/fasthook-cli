@@ -3,7 +3,7 @@
   "$id": "https://api.fasthook.io/contracts/control-api/partial.schema.json",
   "title": "FastHook Control API — Partial contract",
   "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API.",
-  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry, action-crud, connection-crud, connection-latest-input, source-crud, destination-crud, provider-accounts, provider-catalogs, action-options, resource-metrics, request-reads, event-attempt-reads.",
+  "$comment": "Coverage: partial; surfaces: project-api-keys, filter-crud, filter-test, transformation-crud, transformation-execution-history, transformation-test, transformation-capabilities, workflow-crud, workflow-run-history, workflow-step-retry, action-crud, connection-crud, connection-latest-input, source-crud, destination-crud, provider-accounts, provider-catalogs, action-options, resource-metrics, request-reads, event-attempt-reads, request-event-mutations.",
   "$defs": {
     "ProjectApiKeyId": {
       "type": "string",
@@ -2066,6 +2066,421 @@
               "minimum": 0,
               "maximum": 1
             }
+          }
+        }
+      }
+    },
+    "RequestBulkOperationCreateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/MetricsTimeExpression"
+        },
+        "to": {
+          "$ref": "#/$defs/MetricsTimeExpression"
+        },
+        "status": {
+          "$ref": "#/$defs/RequestMetricStatus"
+        },
+        "source_id": {
+          "$ref": "#/$defs/SourceId"
+        },
+        "q": {
+          "type": "string"
+        }
+      }
+    },
+    "EventBulkOperationCreateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/MetricsTimeExpression"
+        },
+        "to": {
+          "$ref": "#/$defs/MetricsTimeExpression"
+        },
+        "status": {
+          "$ref": "#/$defs/EventMetricStatus"
+        },
+        "source_id": {
+          "$ref": "#/$defs/SourceId"
+        },
+        "connection_id": {
+          "$ref": "#/$defs/ConnectionId"
+        },
+        "webhook_id": {
+          "$ref": "#/$defs/ConnectionId"
+        },
+        "destination_id": {
+          "$ref": "#/$defs/DestinationId"
+        },
+        "q": {
+          "type": "string"
+        }
+      }
+    },
+    "RequestReplayModifications": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "QUERY",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "query": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              }
+            }
+          ]
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/JsonValue"
+        }
+      }
+    },
+    "RequestRetryRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "modifications": {
+          "$ref": "#/$defs/RequestReplayModifications"
+        },
+        "request": {
+          "$ref": "#/$defs/RequestReplayModifications"
+        },
+        "replay": {
+          "$ref": "#/$defs/RequestReplayModifications"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "QUERY",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "query": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              }
+            }
+          ]
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/JsonValue"
+        }
+      }
+    },
+    "RequestRetryResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok",
+        "queued",
+        "transport",
+        "replayed_at",
+        "request_id",
+        "source_id",
+        "replay_message_id",
+        "replay_mode",
+        "original_rejection_cause"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "queued": {
+          "type": "boolean",
+          "const": true
+        },
+        "transport": {
+          "type": "string",
+          "const": "queue"
+        },
+        "replayed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "request_id": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "source_id": {
+          "$ref": "#/$defs/SourceId"
+        },
+        "replay_message_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replay_mode": {
+          "type": "string",
+          "enum": [
+            "exact",
+            "modified"
+          ]
+        },
+        "original_rejection_cause": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "EventRetryResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok",
+        "queued",
+        "transport",
+        "retried_at",
+        "event_id",
+        "replay_event_id"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "queued": {
+          "type": "boolean",
+          "const": true
+        },
+        "transport": {
+          "type": "string",
+          "const": "queue"
+        },
+        "retried_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "event_id": {
+          "$ref": "#/$defs/EventId"
+        },
+        "replay_event_id": {
+          "$ref": "#/$defs/EventId"
+        }
+      }
+    },
+    "CreateRequestShareRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_in_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 2592000
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 2592000
+        },
+        "ttl": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 2592000
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "include_body": {
+          "type": "boolean"
+        },
+        "redact_keys": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "RequestShareModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "token",
+        "team_id",
+        "request_id",
+        "source_id",
+        "title",
+        "url",
+        "share_url",
+        "expires_at",
+        "revoked_at",
+        "access_count",
+        "last_accessed_at",
+        "created_at",
+        "updated_at",
+        "sanitized",
+        "request"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^shr_[a-f0-9]{24}$"
+        },
+        "token": {
+          "type": "string",
+          "pattern": "^rsh_[a-f0-9]{48}$"
+        },
+        "team_id": {
+          "type": "string"
+        },
+        "request_id": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 120
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "share_url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "revoked_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "access_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_accessed_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sanitized": {
+          "type": "boolean",
+          "const": true
+        },
+        "request": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
           }
         }
       }
