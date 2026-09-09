@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.14.0",
+    "version": "0.15.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -35,6 +35,9 @@
     },
     {
       "name": "Destinations"
+    },
+    {
+      "name": "Provider accounts"
     }
   ],
   "x-fasthook-contract-coverage": {
@@ -54,7 +57,8 @@
       "connection-crud",
       "connection-latest-input",
       "source-crud",
-      "destination-crud"
+      "destination-crud",
+      "provider-accounts"
     ],
     "sourceFiles": [
       "src/control-api.ts",
@@ -63,6 +67,7 @@
       "src/control-api-destination-config.ts",
       "src/control-api-destination-policy.ts",
       "src/control-api-filters.ts",
+      "src/control-api-provider-accounts.ts",
       "src/control-api-resources.ts",
       "src/control-api-source-resources.ts",
       "src/control-api-triggers.ts",
@@ -72,9 +77,10 @@
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status, Connection CRUD/status/pause/latest-input, Source CRUD/status, and Destination CRUD/status operations",
+      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status, Connection CRUD/status/pause/latest-input, Source CRUD/status, Destination CRUD/status, and Provider Account operations",
       "Source provider catalogs, channel operations, delivery inspection, run history, activity, and manual execution/retry endpoints",
       "Destination metrics and legacy POST enable/disable aliases, whose legacy response DTO differs from the canonical Destination projection",
+      "Legacy google-oauth Provider Account aliases, direct-handler-test-only OAuth paths, OAuth state/credential storage internals, and provider subscription/channel cleanup internals",
       "Dashboard proxy paths under /api/control",
       "CLI commands and widget runtime surfaces; synchronized artifacts do not imply owner-session feature support",
       "The hand-authored public documentation OpenAPI document"
@@ -6305,6 +6311,501 @@
           }
         }
       }
+    },
+    "/v1/provider-accounts": {
+      "get": {
+        "operationId": "listProviderAccounts",
+        "summary": "List connected provider accounts",
+        "description": "Returns secret-free connected-account projections for the selected team. An optional provider_key query filter is supported by the server.",
+        "tags": [
+          "Provider accounts"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connected provider accounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderAccountListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid provider filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/provider-accounts/oauth/start": {
+      "post": {
+        "operationId": "startProviderOAuth",
+        "summary": "Start provider OAuth",
+        "description": "Creates a user-, team-, and provider-bound OAuth state with a ten-minute lifetime and returns the provider authorization URL.",
+        "tags": [
+          "Provider accounts"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderOAuthStartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth authorization request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderOAuthStartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid provider, resource, or authorization context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Project-owner dashboard session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider OAuth is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/provider-accounts/oauth/callback": {
+      "post": {
+        "operationId": "completeProviderOAuth",
+        "summary": "Complete provider OAuth",
+        "description": "Consumes a single-use OAuth state bound to the current dashboard user and team, encrypts provider credentials, and returns the connected account.",
+        "tags": [
+          "Provider accounts"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderOAuthCallbackRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connected provider account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderAccountModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid code, state, or provider response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Project-owner dashboard session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "OAuth state was already consumed or required scopes were not granted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/provider-accounts/credentials/connect": {
+      "post": {
+        "operationId": "connectProviderCredentials",
+        "summary": "Connect provider credentials",
+        "description": "Validates an API-key provider credential payload, encrypts it at rest, and returns a secret-free account projection.",
+        "tags": [
+          "Provider accounts"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderCredentialConnectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connected provider account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderAccountModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid provider or credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Project-owner dashboard session is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/provider-accounts/{accountId}/options": {
+      "get": {
+        "operationId": "listProviderAccountOptions",
+        "summary": "List provider account options",
+        "description": "Browses a provider-specific resource such as channels, repositories, boards, or event types without exposing credentials.",
+        "tags": [
+          "Provider accounts"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "description": "Stable pac_* Provider Account identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ProviderAccountId"
+            }
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "required": true,
+            "description": "Provider-specific resource category to browse.",
+            "schema": {
+              "$ref": "#/components/schemas/ProviderAccountOptionsResource"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Provider resource options",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderAccountOptionsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team membership or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Enabled provider account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Requested options are unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Provider options request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/provider-accounts/{accountId}": {
+      "delete": {
+        "operationId": "revokeProviderAccount",
+        "summary": "Revoke a provider account",
+        "description": "Revokes remote credentials where supported, erases local credentials, disables dependent Sources and Actions, and stops managed channels/subscriptions.",
+        "tags": [
+          "Provider accounts"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_owner_or_site_admin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "description": "Stable pac_* Provider Account identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/ProviderAccountId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Provider account revoke result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderAccountRevokeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team-owner or site-admin access is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Provider account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Remote subscriptions could not be removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider subscription cleanup is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -10786,6 +11287,420 @@
         "properties": {
           "id": {
             "$ref": "#/components/schemas/DestinationId"
+          }
+        }
+      },
+      "ProviderAccountId": {
+        "type": "string",
+        "minLength": 1
+      },
+      "ProviderAccountModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "provider_key",
+          "name",
+          "email",
+          "external_account_id",
+          "status",
+          "scopes",
+          "account_kind",
+          "connection",
+          "token_expires_at",
+          "revoked_at",
+          "last_error",
+          "lifecycle",
+          "usage",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ProviderAccountId"
+          },
+          "provider_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "external_account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled",
+              "error"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "account_kind": {
+            "type": "string",
+            "enum": [
+              "provider",
+              "incoming_webhook"
+            ]
+          },
+          "connection": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "token_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lifecycle": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "reconnect_mode",
+              "can_revoke",
+              "can_reconnect"
+            ],
+            "properties": {
+              "state": {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "expired",
+                  "error",
+                  "revoked"
+                ]
+              },
+              "reconnect_mode": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "can_revoke": {
+                "type": "boolean"
+              },
+              "can_reconnect": {
+                "type": "boolean"
+              }
+            }
+          },
+          "usage": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sources",
+              "actions",
+              "lookups",
+              "total"
+            ],
+            "properties": {
+              "sources": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "actions": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "lookups": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProviderAccountListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "models"
+        ],
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderAccountModel"
+            }
+          }
+        }
+      },
+      "ProviderOAuthStartRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_key"
+        ],
+        "properties": {
+          "provider_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "definition_key": {
+            "type": "string"
+          },
+          "action_key": {
+            "type": "string"
+          },
+          "provider_account_id": {
+            "$ref": "#/components/schemas/ProviderAccountId"
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "authorization_context": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 500
+            }
+          }
+        }
+      },
+      "ProviderOAuthStartResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "authorization_url",
+          "state",
+          "expires_at"
+        ],
+        "properties": {
+          "authorization_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProviderOAuthCallbackRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "state"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1
+          },
+          "callback_params": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          }
+        }
+      },
+      "ProviderCredentialConnectRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_key",
+          "credentials"
+        ],
+        "properties": {
+          "provider_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "credentials": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        }
+      },
+      "ProviderAccountOption": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string"
+          },
+          "required_scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ProviderAccountOptionsResource": {
+        "type": "string",
+        "minLength": 1
+      },
+      "ProviderAccountOptionsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "models"
+        ],
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderAccountOption"
+            }
+          }
+        }
+      },
+      "ProviderAccountRevokeResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status",
+          "revoked_at",
+          "provider_revoked",
+          "google_revoked",
+          "channels_stopped",
+          "channels_failed"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ProviderAccountId"
+          },
+          "status": {
+            "type": "string",
+            "const": "disabled"
+          },
+          "revoked_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "provider_revoked": {
+            "type": "boolean"
+          },
+          "google_revoked": {
+            "type": "boolean",
+            "deprecated": true
+          },
+          "already_revoked": {
+            "type": "boolean"
+          },
+          "channels_stopped": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "channels_failed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "subscriptions_stopped": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "subscriptions_failed": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       },
