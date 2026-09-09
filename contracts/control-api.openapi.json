@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "FastHook Control API — Partial contract",
-    "version": "0.17.0",
+    "version": "0.18.0",
     "description": "A deliberately partial contract for stable FastHook Control API surfaces. It does not claim coverage of the complete Control API."
   },
   "servers": [
@@ -47,6 +47,12 @@
     },
     {
       "name": "Metrics"
+    },
+    {
+      "name": "Requests"
+    },
+    {
+      "name": "Request bulk operations"
     }
   ],
   "x-fasthook-contract-coverage": {
@@ -70,7 +76,8 @@
       "provider-accounts",
       "provider-catalogs",
       "action-options",
-      "resource-metrics"
+      "resource-metrics",
+      "request-reads"
     ],
     "sourceFiles": [
       "src/control-api.ts",
@@ -82,6 +89,9 @@
       "src/control-api-destination-policy.ts",
       "src/control-api-filters.ts",
       "src/control-api-provider-accounts.ts",
+      "src/control-api-batch-operations.ts",
+      "src/control-api-events-query.ts",
+      "src/control-api-request-shares.ts",
       "src/control-api-requests-events.ts",
       "src/control-api-resources.ts",
       "src/control-api-source-resources.ts",
@@ -93,8 +103,8 @@
       "src/project-api-keys.ts"
     ],
     "excluded": [
-      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status and dynamic options, Connection CRUD/status/pause/latest-input, Source CRUD/status, Destination CRUD/status, Provider Account operations, provider catalogs, and resource metrics",
-      "Source channel operations, delivery inspection, run history, activity, and manual execution/retry endpoints",
+      "All Control API resources other than project-api-keys, stored Filter CRUD/test, stored Transformation CRUD/execution-history plus stateless validate/run and capabilities endpoints, Workflow CRUD/run-history/manual Step retry, Action CRUD/status and dynamic options, Connection CRUD/status/pause/latest-input, Source CRUD/status, Destination CRUD/status, Provider Account operations, provider catalogs, resource metrics, and Request reads",
+      "Request share/retry mutations; Event and Attempt collection/detail; Source channel operations; delivery activity; and manual execution/retry endpoints",
       "The legacy /v1/destinations/metrics alias and legacy POST enable/disable aliases, whose legacy response DTO differs from the canonical Destination projection",
       "Legacy google-oauth Provider Account aliases, direct-handler-test-only OAuth paths, OAuth state/credential storage internals, and provider subscription/channel cleanup internals",
       "Dashboard proxy paths under /api/control",
@@ -7619,6 +7629,756 @@
           }
         }
       }
+    },
+    "/v1/requests": {
+      "get": {
+        "operationId": "listRequests",
+        "summary": "List requests",
+        "description": "Returns a descending cursor page of inbound Requests. Totals are lower bounds while next_cursor is present, and partial identifies unavailable Event D1 shards.",
+        "tags": [
+          "Requests"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Range start; defaults to the configured request window.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsTimeExpression"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Range end; defaults to now.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsTimeExpression"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size; default and maximum are 100.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestListLimit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque next_cursor. The next and prev aliases are accepted by the server.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestCursor"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Acceptance status.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestMetricStatus"
+            }
+          },
+          {
+            "name": "verified",
+            "in": "query",
+            "description": "Signature verification filter.",
+            "schema": {
+              "$ref": "#/components/schemas/QueryBoolean"
+            }
+          },
+          {
+            "name": "source_id",
+            "in": "query",
+            "description": "Exact Source filter.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          },
+          {
+            "name": "connection_id",
+            "in": "query",
+            "description": "Exact Connection filter.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          },
+          {
+            "name": "batch_operation_id",
+            "in": "query",
+            "description": "Exact bulk-operation filter.",
+            "schema": {
+              "$ref": "#/components/schemas/BatchOperationId"
+            }
+          },
+          {
+            "name": "is_retry",
+            "in": "query",
+            "description": "Retry lineage filter.",
+            "schema": {
+              "$ref": "#/components/schemas/QueryBoolean"
+            }
+          },
+          {
+            "name": "retry_kind",
+            "in": "query",
+            "description": "Retry kind filter.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestRetryKind"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search Request and external identifiers; search_term is an alias.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "description": "Optional comma-separated data and event_summary expansions; may be repeated.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestInclude"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cursor page of Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid range, cursor, status, or boolean filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/requests/count": {
+      "get": {
+        "operationId": "countRequests",
+        "summary": "Count requests",
+        "description": "Counts Requests with the same filters as listRequests and reports partial shard availability explicitly.",
+        "tags": [
+          "Requests"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Range start; defaults to the configured request window.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsTimeExpression"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Range end; defaults to now.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsTimeExpression"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Acceptance status.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestMetricStatus"
+            }
+          },
+          {
+            "name": "verified",
+            "in": "query",
+            "description": "Signature verification filter.",
+            "schema": {
+              "$ref": "#/components/schemas/QueryBoolean"
+            }
+          },
+          {
+            "name": "source_id",
+            "in": "query",
+            "description": "Exact Source filter.",
+            "schema": {
+              "$ref": "#/components/schemas/SourceId"
+            }
+          },
+          {
+            "name": "connection_id",
+            "in": "query",
+            "description": "Exact Connection filter.",
+            "schema": {
+              "$ref": "#/components/schemas/ConnectionId"
+            }
+          },
+          {
+            "name": "batch_operation_id",
+            "in": "query",
+            "description": "Exact bulk-operation filter.",
+            "schema": {
+              "$ref": "#/components/schemas/BatchOperationId"
+            }
+          },
+          {
+            "name": "is_retry",
+            "in": "query",
+            "description": "Retry lineage filter.",
+            "schema": {
+              "$ref": "#/components/schemas/QueryBoolean"
+            }
+          },
+          {
+            "name": "retry_kind",
+            "in": "query",
+            "description": "Retry kind filter.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestRetryKind"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search Request and external identifiers; search_term is an alias.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request count with shard completeness",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestCountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid range, status, or boolean filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/requests/{requestId}": {
+      "get": {
+        "operationId": "retrieveRequest",
+        "summary": "Retrieve a request",
+        "description": "Returns one Request with its stored inbound payload and most recent proxy exchange when available.",
+        "tags": [
+          "Requests"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "description": "Stable req_* Request identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestModel"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/requests/{requestId}/trace": {
+      "get": {
+        "operationId": "retrieveRequestTrace",
+        "summary": "Retrieve a request trace",
+        "description": "Returns the complete Request path: dynamic inbound payload, proxy exchange, Events, ignored branches, Attempts, Transformation executions, grouped indexes, and a sorted timeline.",
+        "tags": [
+          "Requests"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "description": "Stable req_* Request identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Composite Request trace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestTraceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/requests/{requestId}/events": {
+      "get": {
+        "operationId": "listRequestEvents",
+        "summary": "List request Events",
+        "description": "Returns delivery Events produced for one Request. CANCELLED Events are excluded unless an explicit status filter includes them.",
+        "tags": [
+          "Requests"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "description": "Stable req_* Request identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestId"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum results; default 100 and maximum 255.",
+            "schema": {
+              "$ref": "#/components/schemas/ControlListLimit"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Comma-separated Event IDs; may be repeated.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          },
+          {
+            "name": "connection_id",
+            "in": "query",
+            "description": "Comma-separated Connection IDs; webhook_id aliases are accepted.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          },
+          {
+            "name": "destination_id",
+            "in": "query",
+            "description": "Comma-separated Destination IDs.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          },
+          {
+            "name": "source_id",
+            "in": "query",
+            "description": "Comma-separated Source IDs.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Comma-separated Event statuses; may be repeated.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request Event list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestEventListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Event status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/requests/{requestId}/ignored_events": {
+      "get": {
+        "operationId": "listIgnoredRequestEvents",
+        "summary": "List ignored request Events",
+        "description": "Returns CANCELLED connection-level branches for one Request as stable composite ignored-Event models.",
+        "tags": [
+          "Requests"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "description": "Stable req_* Request identifier.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestId"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum results; default 100 and maximum 255.",
+            "schema": {
+              "$ref": "#/components/schemas/ControlListLimit"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Comma-separated composite ignored-Event IDs; may be repeated.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          },
+          {
+            "name": "connection_id",
+            "in": "query",
+            "description": "Comma-separated Connection IDs; webhook_id aliases are accepted.",
+            "schema": {
+              "$ref": "#/components/schemas/MetricsResourceIds"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ignored Request Event list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IgnoredRequestEventListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/requests/bulk_operations": {
+      "get": {
+        "operationId": "listRequestBulkOperations",
+        "summary": "List Request bulk operations",
+        "description": "Lists Request bulk-retry operations with durable item counts and cancellation availability.",
+        "tags": [
+          "Request bulk operations"
+        ],
+        "security": [
+          {
+            "SessionBearer": []
+          },
+          {
+            "ProjectApiKeyBearer": []
+          }
+        ],
+        "x-fasthook-required-role": "team_member_or_site_admin_or_project_api_key_read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TeamId"
+          },
+          {
+            "name": "bucket",
+            "in": "query",
+            "description": "all, ongoing, or terminal history; defaults to all.",
+            "schema": {
+              "$ref": "#/components/schemas/RequestBulkOperationBucket"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum results; default 100 and maximum 255.",
+            "schema": {
+              "$ref": "#/components/schemas/ControlListLimit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request bulk-operation list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestBulkOperationListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Team access or control:read scope is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8563,6 +9323,1287 @@
         "type": "string",
         "minLength": 1,
         "description": "ISO 8601 timestamp or relative expression such as now-24h."
+      },
+      "RequestId": {
+        "type": "string",
+        "pattern": "^req_[A-Za-z0-9_-]+$"
+      },
+      "EventId": {
+        "type": "string",
+        "pattern": "^evt_[A-Za-z0-9_-]+$"
+      },
+      "AttemptId": {
+        "type": "string",
+        "pattern": "^att_[A-Za-z0-9_-]+$"
+      },
+      "BatchOperationId": {
+        "type": "string",
+        "pattern": "^bch_[A-Za-z0-9_-]+$"
+      },
+      "RequestCursor": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Opaque descending-page cursor returned as next_cursor."
+      },
+      "RequestInclude": {
+        "type": "string",
+        "enum": [
+          "data",
+          "event_summary",
+          "data,event_summary",
+          "event_summary,data"
+        ]
+      },
+      "RequestRetryKind": {
+        "type": "string",
+        "enum": [
+          "single",
+          "bulk"
+        ]
+      },
+      "RequestListLimit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100
+      },
+      "ControlListLimit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 255
+      },
+      "QueryBoolean": {
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      },
+      "RequestAppliedRange": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RequestPagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "order_by",
+          "dir",
+          "limit"
+        ],
+        "properties": {
+          "order_by": {
+            "type": "string",
+            "enum": [
+              "created_at"
+            ]
+          },
+          "dir": {
+            "type": "string",
+            "enum": [
+              "desc"
+            ]
+          },
+          "limit": {
+            "$ref": "#/components/schemas/RequestListLimit"
+          }
+        }
+      },
+      "RequestModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "status",
+          "verified",
+          "rejection_cause",
+          "original_event_data_id",
+          "ingested_at",
+          "source_id",
+          "events_count",
+          "ignored_count",
+          "cli_events_count",
+          "is_retry",
+          "retry_kind",
+          "retry_parent_request_id",
+          "retry_operation_id",
+          "retried_at",
+          "updated_at",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/RequestId"
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "$ref": "#/components/schemas/RequestMetricStatus"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "rejection_cause": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "original_event_data_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ingested_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "events_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ignored_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cli_events_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "is_retry": {
+            "type": "boolean"
+          },
+          "retry_kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestRetryKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retry_parent_request_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retry_operation_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BatchOperationId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retried_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "proxy_exchange": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProxyExchangeModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "RequestListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "total",
+          "total_exact",
+          "partial",
+          "unavailable_shard_count",
+          "limit",
+          "applied_range",
+          "next_cursor",
+          "next",
+          "prev",
+          "pagination",
+          "count",
+          "models"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total_exact": {
+            "type": "boolean"
+          },
+          "partial": {
+            "type": "boolean"
+          },
+          "unavailable_shard_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "$ref": "#/components/schemas/RequestListLimit"
+          },
+          "applied_range": {
+            "$ref": "#/components/schemas/RequestAppliedRange"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestCursor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestCursor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "prev": {
+            "type": "null"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/RequestPagination"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequestModel"
+            }
+          }
+        }
+      },
+      "RequestCountResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "total",
+          "count",
+          "total_exact",
+          "partial",
+          "unavailable_shard_count",
+          "applied_range"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total_exact": {
+            "type": "boolean"
+          },
+          "partial": {
+            "type": "boolean"
+          },
+          "unavailable_shard_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "applied_range": {
+            "$ref": "#/components/schemas/RequestAppliedRange"
+          }
+        }
+      },
+      "ProxyExchangeModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "source_id",
+          "request_id",
+          "target_url",
+          "http_method",
+          "response_status",
+          "response_headers",
+          "response_body",
+          "response_body_truncated",
+          "error_text",
+          "started_at",
+          "responded_at",
+          "response_latency",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "request_id": {
+            "$ref": "#/components/schemas/RequestId"
+          },
+          "target_url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "http_method": {
+            "type": "string",
+            "minLength": 1
+          },
+          "response_status": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "response_headers": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "response_body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "response_body_truncated": {
+            "type": "boolean"
+          },
+          "error_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "responded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "response_latency": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RequestEventModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "webhook_id",
+          "source_id",
+          "destination_id",
+          "attempts",
+          "response_status",
+          "last_attempt_at",
+          "next_attempt_at",
+          "successful_at",
+          "updated_at",
+          "created_at",
+          "status",
+          "event_data_id",
+          "cli_id",
+          "request_id",
+          "error_code"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "webhook_id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "destination_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DestinationId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "response_status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_attempt_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_attempt_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "successful_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EventMetricStatus"
+          },
+          "event_data_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cli_id": {
+            "type": "null"
+          },
+          "request_id": {
+            "$ref": "#/components/schemas/RequestId"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "RequestEventPagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "order_by",
+          "dir",
+          "limit"
+        ],
+        "properties": {
+          "order_by": {
+            "type": "string",
+            "enum": [
+              "created_at",
+              "id"
+            ]
+          },
+          "dir": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "limit": {
+            "$ref": "#/components/schemas/ControlListLimit"
+          }
+        }
+      },
+      "RequestEventListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pagination",
+          "next",
+          "prev",
+          "count",
+          "models"
+        ],
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/RequestEventPagination"
+          },
+          "next": {
+            "type": "null"
+          },
+          "prev": {
+            "type": "null"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequestEventModel"
+            }
+          }
+        }
+      },
+      "IgnoredRequestEventModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "webhook_id",
+          "cause",
+          "request_id",
+          "meta",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "webhook_id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "cause": {
+            "type": "string",
+            "minLength": 1
+          },
+          "request_id": {
+            "$ref": "#/components/schemas/RequestId"
+          },
+          "meta": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "IgnoredRequestEventListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pagination",
+          "next",
+          "prev",
+          "count",
+          "models"
+        ],
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/RequestEventPagination"
+          },
+          "next": {
+            "type": "null"
+          },
+          "prev": {
+            "type": "null"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IgnoredRequestEventModel"
+            }
+          }
+        }
+      },
+      "TraceEventModel": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "team_id",
+          "request_id",
+          "connection_id",
+          "source_id",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "$ref": "#/components/schemas/RequestId"
+          },
+          "connection_id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "source_id": {
+            "$ref": "#/components/schemas/SourceId"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EventMetricStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TraceAttemptModel": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "team_id",
+          "event_id",
+          "destination_id",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/AttemptId"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "event_id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "destination_id": {
+            "$ref": "#/components/schemas/DestinationId"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "FAILED",
+              "SUCCESSFUL"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TraceTransformationModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "event_id",
+          "webhook_id",
+          "transformed_event_data_id",
+          "original_event_data_id",
+          "transformation_id",
+          "log_level",
+          "logs",
+          "original_event_data",
+          "transformed_event_data",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/TransformationExecutionId"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "webhook_id": {
+            "$ref": "#/components/schemas/ConnectionId"
+          },
+          "transformed_event_data_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "original_event_data_id": {
+            "type": "string"
+          },
+          "transformation_id": {
+            "$ref": "#/components/schemas/TransformationId"
+          },
+          "log_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "original_event_data": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "transformed_event_data": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RequestTraceTimelineItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "at",
+          "request_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_id": {
+            "$ref": "#/components/schemas/RequestId"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attempt_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "transformation_execution_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TransformationExecutionId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "connection_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConnectionId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "destination_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DestinationId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "proxy_exchange_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "RequestTraceResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "request",
+          "proxy_exchange",
+          "events",
+          "ignored_events",
+          "attempts",
+          "attempts_by_event_id",
+          "transformations",
+          "transformations_by_event_id",
+          "timeline",
+          "counts"
+        ],
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/RequestModel"
+          },
+          "proxy_exchange": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProxyExchangeModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceEventModel"
+            }
+          },
+          "ignored_events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IgnoredRequestEventModel"
+            }
+          },
+          "attempts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceAttemptModel"
+            }
+          },
+          "attempts_by_event_id": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/TraceAttemptModel"
+              }
+            }
+          },
+          "transformations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceTransformationModel"
+            }
+          },
+          "transformations_by_event_id": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/TraceTransformationModel"
+              }
+            }
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequestTraceTimelineItem"
+            }
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "events",
+              "ignored_events",
+              "attempts",
+              "transformations",
+              "proxy_exchanges"
+            ],
+            "properties": {
+              "events": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "ignored_events": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "attempts": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "transformations": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "proxy_exchanges": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        }
+      },
+      "RequestBulkOperationBucket": {
+        "type": "string",
+        "enum": [
+          "all",
+          "ongoing",
+          "history"
+        ]
+      },
+      "RequestBulkOperationModel": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "team_id",
+          "type",
+          "status",
+          "filter",
+          "requested_by",
+          "created_at",
+          "started_at",
+          "finished_at",
+          "total_count",
+          "queued_count",
+          "done_count",
+          "failed_count",
+          "cancelable"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/BatchOperationId"
+          },
+          "team_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "request_bulk_retry"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PLANNED",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED",
+              "CANCELLED"
+            ]
+          },
+          "filter": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "queued_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "done_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cancelable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RequestBulkOperationListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "count",
+          "models"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequestBulkOperationModel"
+            }
+          }
+        }
       },
       "MetricsGranularity": {
         "type": "string",
